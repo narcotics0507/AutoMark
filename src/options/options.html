@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>设置 - AI 书签整理器</title>
+    <link rel="stylesheet" href="options.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Left Panel: Configuration -->
+        <aside class="sidebar">
+            <header>
+                <h1>🔮 AI 书签整理</h1>
+                <p>配置您的 AI 助手</p>
+            </header>
+
+            <div class="form-group">
+                <label for="apiProvider">API 提供商</label>
+                <select id="apiProvider">
+                    <option value="openai">OpenAI (ChatGPT)</option>
+                    <option value="gemini">Google Gemini</option>
+                    <option value="deepseek">DeepSeek (OpenAI Compatible)</option>
+                    <option value="custom">Custom (OpenAI Compatible)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="apiEndpoint">API Endpoint Url</label>
+                <input type="text" id="apiEndpoint" placeholder="https://api.openai.com/v1/chat/completions">
+                <small class="hint">如果是 OpenAI，通常留默认即可。DeepSeek 或其他模型请填写入完整补全地址。</small>
+            </div>
+
+            <div class="form-group">
+                <label for="apiKey">API Key <span class="required">*</span></label>
+                <input type="password" id="apiKey" placeholder="sk-...">
+            </div>
+
+            <div class="form-group">
+                <label for="modelName">模型名称</label>
+                <input type="text" id="modelName" placeholder="gpt-4o">
+            </div>
+
+            <div class="form-group">
+                <label for="targetLanguage">目标语言</label>
+                <select id="targetLanguage">
+                    <option value="zh-CN">简体中文 (Chinese)</option>
+                    <option value="en-US">English</option>
+                </select>
+            </div>
+
+            <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+                <input type="checkbox" id="autoCategorize" style="width: auto;">
+                <label for="autoCategorize" style="margin: 0; font-weight: normal;">自动整理新添加的书签</label>
+            </div>
+
+            <div class="actions">
+                <button id="btnTest" class="secondary-btn">测试连接</button>
+                <button id="btnSave" class="primary-btn">保存配置</button>
+            </div>
+            <div id="statusMessage" class="status-msg"></div>
+        </aside>
+
+        <!-- Right Panel: Dashboard -->
+        <main class="dashboard">
+            <!-- Step 0: Welcome -->
+            <div id="step-welcome" class="wizard-step">
+                <div class="hero-section">
+                    <h2>智能整理控制台</h2>
+                    <p>让 AI 为您重塑书签结构</p>
+                </div>
+                <div class="control-panel">
+                    <button id="btnStartWizard" class="action-btn-large">
+                        <span class="icon">✨</span> 开始智能整理
+                    </button>
+                    <div style="margin-top: 20px; text-align: center; color: #666;">
+                        <small>将引导您选择文件夹、生成计划并审查，最后执行。</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 1: Select Folders -->
+            <div id="step-select" class="wizard-step hidden">
+                <h3>1. 选择要整理的文件夹</h3>
+                <p class="step-desc">请勾选您希望 AI 整理的文件夹。未勾选的文件夹将不会被修改。</p>
+                <div id="folder-list" class="folder-selection-list">
+                    <!-- Checkboxes will be injected here -->
+                    <div class="loading-spinner">加载文件夹中...</div>
+                </div>
+
+                <div style="margin: 10px 0;">
+                    <label style="display: flex; align-items: center; gap: 5px; font-weight: normal; cursor: pointer;">
+                        <input type="checkbox" id="checkDeadLinks">
+                        同时检测失效链接 (可能会增加耗时)
+                    </label>
+                </div>
+
+                <div class="step-actions">
+                    <button id="btnBackToWelcome" class="secondary-btn">取消</button>
+                    <div style="display: flex; gap: 10px;">
+                        <button id="btnCheckDeadLinksOnly" class="secondary-btn"
+                            style="border: 1px solid #ff9800; color: #ff9800;">仅检测死链</button>
+                        <button id="btnConfirmSelection" class="primary-btn">开始智能分析</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Analysis Progress -->
+            <div id="step-analyze" class="wizard-step hidden">
+                <h3>2. AI正在分析</h3>
+                <div class="progress-container">
+                    <div class="progress-header">
+                        <span id="analyze-status">正在连接 AI...</span>
+                        <span id="analyze-percent">0%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div id="analyze-fill" class="progress-fill" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div id="analyze-log" class="log-mini-view"></div>
+                <div class="step-actions" style="margin-top: 10px; justify-content: center;">
+                    <button id="btnStopAnalyze" class="secondary-btn stop-btn"
+                        style="border-color: #d32f2f; color: #d32f2f;">停止分析</button>
+                    <button id="btnAnalyzeBack" class="secondary-btn hidden">返回上一步</button>
+                </div>
+            </div>
+
+            <!-- Step 3: Review Plan -->
+            <div id="step-review" class="wizard-step hidden">
+                <h3>3. 审查整理计划</h3>
+                <p class="step-desc">AI 建议进行以下更改。您可以取消勾选不想执行的操作。</p>
+
+                <div class="plan-summary">
+                    <div class="summary-item">
+                        <span class="count" id="count-create">0</span>
+                        <span class="label">新建文件夹</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="count" id="count-move">0</span>
+                        <span class="label">移动书签</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="count" id="count-rename">0</span>
+                        <span class="label">重命名</span>
+                    </div>
+                </div>
+
+                <div id="plan-details" class="plan-details-list">
+                    <!-- Plan items injected here -->
+                </div>
+
+                <div class="step-actions">
+                    <button id="btnCancelReview" class="secondary-btn">取消</button>
+                    <button id="btnExecuteInfo" class="primary-btn">确认执行</button>
+                </div>
+            </div>
+
+            <!-- Step 4: Execution -->
+            <div id="step-execute" class="wizard-step hidden">
+                <h3>4. 正在执行整理</h3>
+                <div class="progress-container">
+                    <div class="progress-header">
+                        <span id="exec-status">正在移动...</span>
+                        <span id="exec-percent">0%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div id="exec-fill" class="progress-fill" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div id="exec-log" class="log-mini-view"></div>
+
+                <div class="step-actions" style="margin-top: 10px;">
+                    <button id="btnStopExecute" class="secondary-btn stop-btn"
+                        style="border-color: #d32f2f; color: #d32f2f; margin-right: auto;">停止</button>
+                </div>
+
+                <div id="exec-done-actions" class="step-actions hidden">
+                    <button id="btnFinish" class="primary-btn">完成</button>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="options.js" type="module"></script>
+</body>
+
+</html>

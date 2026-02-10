@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "AI Bookmark Organizer",
+  "version": "1.0.0",
+  "description": "Intelligently organize your Chrome bookmarks using AI.",
+  "permissions": [
+    "bookmarks",
+    "storage"
+  ],
+  "action": {
+    "default_popup": "src/popup/popup.html",
+    "default_title": "AI Bookmark Organizer"
+  },
+  "options_page": "src/options/options.html",
+  "background": {
+    "service_worker": "src/background/background.js",
+    "type": "module"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  }
+}

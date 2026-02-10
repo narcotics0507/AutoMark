@@ -1,0 +1,133 @@
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  width: 350px;
+  margin: 0;
+  padding: 0;
+  background-color: #f9f9f9;
+  color: #333;
+}
+
+.container {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 8px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.icon-btn:hover {
+  background-color: #eee;
+}
+
+.status-card {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  transition: all 0.3s ease;
+}
+
+.status-icon {
+  font-size: 48px;
+  margin-bottom: 10px;
+}
+
+h2 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+}
+
+p {
+  margin: 0;
+  font-size: 13px;
+  color: #666;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.primary-btn {
+  background-color: #4285f4;
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  width: 100%;
+}
+
+.primary-btn:hover {
+  background-color: #3367d6;
+}
+
+.primary-btn:disabled {
+  background-color: #a0c3ff;
+  cursor: not-allowed;
+}
+
+.log-container {
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  padding: 10px;
+  max-height: 150px;
+  overflow-y: auto;
+  font-size: 12px;
+}
+
+.log-container.hidden {
+  display: none;
+}
+
+.log-container h3 {
+  margin: 0 0 5px 0;
+  font-size: 12px;
+  color: #999;
+}
+
+#logList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+#logList li {
+  padding: 2px 0;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+footer {
+  text-align: center;
+  font-size: 11px;
+  color: #aaa;
+  margin-top: 8px;
+}

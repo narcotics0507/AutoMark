@@ -1,0 +1,262 @@
+:root {
+    --primary-color: #4CAF50;
+    --primary-hover: #45a049;
+    --secondary-bg: #f5f5f5;
+    --text-color: #333;
+    --border-color: #ddd;
+    --sidebar-width: 320px;
+    --sidebar-bg: #fff;
+    --dashboard-bg: #f9fafb;
+}
+
+body,
+html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: var(--text-color);
+}
+
+.app-container {
+    display: flex;
+    height: 100vh;
+    width: 100%;
+    overflow: hidden;
+}
+
+/* Sidebar */
+.sidebar {
+    width: var(--sidebar-width);
+    background: var(--sidebar-bg);
+    border-right: 1px solid var(--border-color);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
+}
+
+.sidebar header h1 {
+    font-size: 1.2rem;
+    margin: 0;
+    color: var(--primary-color);
+}
+
+.sidebar header p {
+    font-size: 0.85rem;
+    color: #666;
+    margin: 5px 0 20px 0;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+.form-group .hint {
+    display: block;
+    font-size: 0.75rem;
+    color: #888;
+    margin-top: 4px;
+}
+
+.required {
+    color: red;
+}
+
+.sidebar .actions {
+    margin-top: 20px;
+    display: flex;
+    gap: 10px;
+}
+
+.sidebar .status-msg {
+    margin-top: 10px;
+    font-size: 0.85rem;
+    min-height: 20px;
+    display: block;
+}
+
+/* Dashboard */
+.dashboard {
+    flex: 1;
+    background: var(--dashboard-bg);
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+.hero-section {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.hero-section h2 {
+    font-size: 1.8rem;
+    margin: 0 0 5px 0;
+}
+
+.hero-section p {
+    color: #666;
+    margin: 0;
+}
+
+/* Big Start Button */
+.action-btn-large {
+    background: linear-gradient(135deg, #4CAF50, #2E7D32);
+    color: white;
+    border: none;
+    padding: 15px 40px;
+    font-size: 1.2rem;
+    border-radius: 50px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+    transition: transform 0.2s, box-shadow 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin: 0 auto;
+}
+
+.action-btn-large:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+}
+
+.action-btn-large:active:not(:disabled) {
+    transform: translateY(1px);
+}
+
+.action-btn-large:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+/* Progress Bar */
+.progress-container {
+    margin-top: 25px;
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.progress-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.progress-bar {
+    height: 10px;
+    background: #eee;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: var(--primary-color);
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+.hidden {
+    display: none;
+}
+
+/* Log Panel */
+.log-panel {
+    margin-top: 30px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    max-width: 800px;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.log-panel h3 {
+    font-size: 1rem;
+    margin-bottom: 10px;
+    color: #555;
+    border-left: 3px solid var(--primary-color);
+    padding-left: 10px;
+}
+
+.log-list {
+    flex: 1;
+    background: #1e1e1e;
+    color: #eee;
+    font-family: 'Consolas', monospace;
+    font-size: 0.85rem;
+    padding: 15px;
+    border-radius: 8px;
+    height: 300px;
+    min-height: 200px;
+    overflow-y: auto;
+    line-height: 1.5;
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.log-list .log-item {
+    margin-bottom: 4px;
+    border-bottom: 1px solid #333;
+    padding-bottom: 2px;
+}
+
+.log-list .log-time {
+    color: #888;
+    margin-right: 8px;
+}
+
+.secondary-btn {
+    background-color: #fff;
+    color: #333;
+    border: 1px solid #ddd;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.primary-btn {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.secondary-btn:hover {
+    background-color: #f0f0f0;
+}
+
+.primary-btn:hover {
+    background-color: var(--primary-hover);
+}

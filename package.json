@@ -1,0 +1,8 @@
+{
+    "name": "ai-bookmark-organizer-test",
+    "version": "1.0.0",
+    "type": "module",
+    "scripts": {
+        "test": "node test/test_workflow.js"
+    }
+}
