@@ -190,6 +190,15 @@ document.getElementById('btnStartWizard').addEventListener('click', async () => 
             checkbox.id = `folder-${f.id}`;
             checkbox.value = f.id;
             checkbox.checked = true; // Default checked
+            checkbox.addEventListener('change', () => {
+                const total = document.querySelectorAll('#folder-list input[type="checkbox"]').length;
+                const checkedCount = document.querySelectorAll('#folder-list input[type="checkbox"]:checked').length;
+                const selectAll = document.getElementById('selectAllFolders');
+                if (selectAll) {
+                    selectAll.checked = (total === checkedCount);
+                    selectAll.indeterminate = (checkedCount > 0 && checkedCount < total);
+                }
+            });
 
             const label = document.createElement('label');
             label.htmlFor = `folder-${f.id}`;
@@ -211,10 +220,30 @@ document.getElementById('btnBackToWelcome').addEventListener('click', () => {
 // Bind Buttons
 document.getElementById('btnConfirmSelection').addEventListener('click', () => startAnalysis({ skipAI: false }));
 document.getElementById('btnCheckDeadLinksOnly').addEventListener('click', () => startAnalysis({ skipAI: true }));
+document.getElementById('btnCheckDuplicates').addEventListener('click', () => startAnalysis({ skipAI: true, checkDuplicates: true }));
 document.getElementById('btnAnalyzeBack').addEventListener('click', () => showStep('select'));
 
+// Select All Logic
+document.getElementById('selectAllFolders').addEventListener('change', (e) => {
+    const checked = e.target.checked;
+    const checkboxes = document.querySelectorAll('#folder-list input[type="checkbox"]');
+    checkboxes.forEach(cb => cb.checked = checked);
+});
+
 async function startAnalysis(options = {}) {
-    const { skipAI = false } = options;
+    const { skipAI = false, checkDuplicates = false } = options;
+
+    // Dynamic Text Updates
+    const analyzeTitle = document.getElementById('analyze-step-title');
+    const reviewDesc = document.getElementById('review-step-desc');
+
+    if (skipAI) {
+        if (analyzeTitle) analyzeTitle.textContent = '2. 正在扫描...';
+        if (reviewDesc) reviewDesc.textContent = '检测完成，建议进行以下更改。您可以取消勾选不想执行的操作。';
+    } else {
+        if (analyzeTitle) analyzeTitle.textContent = '2. AI正在分析';
+        if (reviewDesc) reviewDesc.textContent = 'AI 建议进行以下更改。您可以取消勾选不想执行的操作。';
+    }
 
     // Get selected IDs
     const checkboxes = document.querySelectorAll('#folder-list input[type="checkbox"]:checked');
@@ -223,8 +252,21 @@ async function startAnalysis(options = {}) {
     // Logic: 
     // - ConfirmSelection (AI Analysis): checkDeadLinks = user checkbox
     // - CheckDeadLinksOnly: checkDeadLinks = true, skipAI = true
+    // - CheckDuplicates: checkDuplicates = true, skipAI = true, checkDeadLinks = false (usually)
     const userCheckDeadLinks = document.getElementById('checkDeadLinks').checked;
-    const checkDeadLinks = skipAI ? true : userCheckDeadLinks;
+
+    let checkDeadLinks = userCheckDeadLinks;
+    if (skipAI && !checkDuplicates) {
+        // "Dead Links Only" button clicked
+        checkDeadLinks = true;
+    } else if (checkDuplicates) {
+        // "Duplicates" button clicked
+        // We probably don't want to force dead links check unless user checked it?
+        // Let's stick to user preference or false if strictly just duplicates.
+        // For simplicity, let's say if Duplicates button is clicked, we IGNORE the "Check Dead Links" checkbox to keep it focused,
+        // OR we respect it. Let's respect it if checked, but don't force it.
+        checkDeadLinks = userCheckDeadLinks;
+    }
 
     if (selectedIds.length === 0) {
         alert('请至少选择一个文件夹！');
@@ -245,7 +287,11 @@ async function startAnalysis(options = {}) {
     logEl.innerHTML = '';
     fillEl.style.width = '0%';
     pctEl.textContent = '0%';
-    statusEl.textContent = '准备开始...';
+
+    // Contextual Status
+    const statusText = skipAI ? '正在检测...' : 'AI 正在分析...';
+    statusEl.textContent = statusText;
+
     btnStop.classList.remove('hidden');
     btnBack.classList.add('hidden');
 
@@ -275,7 +321,7 @@ async function startAnalysis(options = {}) {
     };
 
     try {
-        currentPlan = await organizer.analyze(selectedIds, { checkDeadLinks, skipAI });
+        currentPlan = await organizer.analyze(selectedIds, { checkDeadLinks, skipAI, checkDuplicates });
         if (!organizer.isCancelled) {
             renderReview(currentPlan);
             showStep('review');
@@ -306,16 +352,18 @@ function renderReview(plan) {
     document.getElementById('count-move').textContent = gets(plan.bookmarks_to_move);
     document.getElementById('count-rename').textContent = gets(plan.folders_to_rename);
 
-    // Helper to render expanded groups (Tree-like)
-    const createGroupedSection = (title, items, icon, groupKeyFn, itemRenderer) => {
+    /**
+     * Helper to render expanded groups (Tree-like)
+     * Supports Pagination for large lists (optional)
+     */
+    const createGroupedSection = (title, items, icon, groupKeyFn, itemRendererHTML, usePagination = false, customRenderGroup = null) => {
         if (!items || items.length === 0) return;
 
         const section = document.createElement('div');
         section.className = 'plan-section';
 
         const header = document.createElement('h4');
-        header.textContent = `${icon} ${title} (${items.length})`;
-        header.style.margin = '10px 0 5px 0';
+        header.innerHTML = `<span style="font-size:1.2em">${icon}</span> ${title} <span style="background:#eee;padding:2px 8px;border-radius:10px;font-size:0.8em;color:#666">${items.length}</span>`;
         section.appendChild(header);
 
         // Group items
@@ -332,108 +380,264 @@ function renderReview(plan) {
             }
         });
 
-        // Render Groups
-        Object.keys(groups).sort().forEach(groupName => {
-            const groupItems = groups[groupName];
-            const details = document.createElement('details');
-            details.className = 'plan-group-details';
+        const sortedGroupNames = Object.keys(groups).sort();
 
-            const summary = document.createElement('summary');
+        // Inner function to render a list of groups
+        const renderGroupList = (groupNames) => {
+            const container = document.createElement('div');
 
-            // Group Checkbox
-            const groupCb = document.createElement('input');
-            groupCb.type = 'checkbox';
-            const allChecked = groupItems.every(i => !i._ignored);
-            groupCb.checked = allChecked;
-            groupCb.onclick = (e) => {
-                // Prevent toggling details
-                e.stopPropagation();
-            };
-            groupCb.onchange = (e) => {
-                const checked = e.target.checked;
-                groupItems.forEach(i => i._ignored = !checked);
-                // Rerender group items checks? Or just update plan state? 
-                // We need to visually update children checkboxes.
-                const childCbs = details.querySelectorAll('.item-cb');
-                childCbs.forEach(cb => cb.checked = checked);
-                updateReviewCounts();
-            };
+            groupNames.forEach(groupName => {
+                const groupItems = groups[groupName];
 
-            const summaryText = document.createElement('span');
-            summaryText.textContent = `${groupName} (${groupItems.length})`;
+                // Use Custom Group Renderer if provided (e.g. for duplicates)
+                if (customRenderGroup) {
+                    container.appendChild(customRenderGroup(groupName, groupItems, updateReviewCounts));
+                    return;
+                }
 
-            summary.appendChild(groupCb);
-            summary.appendChild(summaryText);
-            details.appendChild(summary);
+                // Default Group Renderer
+                const details = document.createElement('details');
+                details.className = 'plan-group-details';
+                details.open = true;
 
-            const contentDiv = document.createElement('div');
-            contentDiv.className = 'group-content';
-
-            groupItems.forEach(item => {
-                const row = document.createElement('div');
-                row.className = 'plan-item';
-
-                const cb = document.createElement('input');
-                cb.type = 'checkbox';
-                cb.className = 'item-cb';
-                cb.checked = !item._ignored;
-                cb.onchange = (e) => {
-                    item._ignored = !e.target.checked;
+                const summary = document.createElement('summary');
+                const groupCb = document.createElement('input');
+                groupCb.type = 'checkbox';
+                const allChecked = groupItems.every(i => !i._ignored);
+                groupCb.checked = allChecked;
+                groupCb.onclick = (e) => e.stopPropagation();
+                groupCb.onchange = (e) => {
+                    const checked = e.target.checked;
+                    groupItems.forEach(i => i._ignored = !checked);
+                    const childCbs = details.querySelectorAll('.item-cb');
+                    childCbs.forEach(cb => cb.checked = checked);
                     updateReviewCounts();
-                    // Update group checkbox state? (Optional polish)
                 };
 
-                const text = document.createElement('span');
-                text.textContent = itemRenderer(item);
-                text.title = item.title || ''; // Tooltip
+                const summaryText = document.createElement('span');
+                summaryText.textContent = `${groupName}`;
+                summaryText.style.fontWeight = 'bold';
+                summary.appendChild(groupCb);
+                summary.appendChild(summaryText);
+                details.appendChild(summary);
 
-                row.appendChild(cb);
-                row.appendChild(text);
-                contentDiv.appendChild(row);
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'group-content';
+
+                groupItems.forEach(item => {
+                    const row = document.createElement('div');
+                    row.className = 'plan-item';
+                    const cb = document.createElement('input');
+                    cb.type = 'checkbox';
+                    cb.className = 'item-cb';
+                    cb.checked = !item._ignored;
+                    cb.onchange = (e) => {
+                        item._ignored = !e.target.checked;
+                        updateReviewCounts();
+                    };
+                    const textDiv = document.createElement('div');
+                    textDiv.innerHTML = itemRendererHTML(item);
+                    row.appendChild(cb);
+                    row.appendChild(textDiv);
+                    contentDiv.appendChild(row);
+                });
+
+                details.appendChild(contentDiv);
+                container.appendChild(details);
             });
+            return container;
+        };
 
-            details.appendChild(contentDiv);
-            section.appendChild(details);
-        });
+        // Pagination Logic
+        if (usePagination && sortedGroupNames.length > 10) {
+            const pageSize = 10;
+            let currentPage = 1;
+            const totalPages = Math.ceil(sortedGroupNames.length / pageSize);
 
-        // Render Misc Items
-        if (miscItems.length > 0) {
-            // ... similar logic for flat list if needed, or put in "Others" group
+            const contentContainer = document.createElement('div');
+
+            // Render Page Function
+            const renderPage = () => {
+                contentContainer.innerHTML = '';
+                const start = (currentPage - 1) * pageSize;
+                const end = start + pageSize;
+                const pageGroups = sortedGroupNames.slice(start, end);
+                contentContainer.appendChild(renderGroupList(pageGroups));
+
+                // Update controls text and state
+                pageInfo.textContent = `第 ${currentPage} / ${totalPages} 页 (共 ${sortedGroupNames.length} 组)`;
+                btnPrev.disabled = currentPage === 1;
+                btnNext.disabled = currentPage === totalPages;
+
+                // Scroll to top of section if needed
+                if (detailsEl.scrollTop > section.offsetTop) {
+                    // detailsEl.scrollTop = section.offsetTop;
+                }
+            };
+
+            const controls = document.createElement('div');
+            controls.className = 'pagination-controls';
+
+            const btnPrev = document.createElement('button');
+            btnPrev.textContent = '上一页';
+            btnPrev.onclick = () => {
+                if (currentPage > 1) { currentPage--; renderPage(); }
+            };
+
+            const pageInfo = document.createElement('span');
+            pageInfo.className = 'pagination-info';
+
+            const btnNext = document.createElement('button');
+            btnNext.textContent = '下一页';
+            btnNext.onclick = () => {
+                if (currentPage < totalPages) { currentPage++; renderPage(); }
+            };
+
+            controls.append(btnPrev, pageInfo, btnNext);
+
+            section.appendChild(contentContainer);
+            section.appendChild(controls);
+
+            // Init
+            renderPage();
+
+        } else {
+            // No pagination needed
+            section.appendChild(renderGroupList(sortedGroupNames));
         }
 
         detailsEl.appendChild(section);
     };
 
-    // 1. New Folders: List is fine, or group by parent? 
-    // Usually they are flat paths "A/B", "A/C". Group by "A"?
-    // For now, let's just list them but use the new container style.
+    // 1. New Folders
     createGroupedSection('新建文件夹', plan.folders_to_create, '📁',
         (i) => i.path.includes('/') ? i.path.split('/')[0] : 'Top Level',
-        (i) => i.path
+        (i) => `<span>${i.path}</span>`
     );
 
-    // 2. Move Bookmarks: Group by Target Folder
+    // 2. Move Bookmarks
     createGroupedSection('移动书签', plan.bookmarks_to_move, '📄',
         (i) => i.target_folder_path,
-        (i) => i.title || `ID:${i.bookmark_id}` // Use Title!
+        (i) => `<span>${i.title}</span> <span class="url-subtext">${i.url}</span>`
     );
 
-    // 3. Rename: Group by ... parent path?
+    // 3. Rename
     createGroupedSection('重命名文件夹', plan.folders_to_rename, '✏️',
         (i) => 'Renames',
-        (i) => `${i.old_title || i.bookmark_id} -> ${i.new_title}`
+        (i) => `<span>${i.old_title} &rarr; <b>${i.new_title}</b></span>`
     );
 
     // 4. Archive
     createGroupedSection('归档/清理', plan.archive, '📦',
         (i) => i.reason || 'General',
-        (i) => `${i.title}`
+        (i) => `<span>${i.title}</span>`
     );
 
     // 5. Dead Links
     createGroupedSection('失效链接', plan.dead_links, '💀',
         (i) => i.reason || 'Unknown',
-        (i) => `${i.title || i.url} (${i.url})`
+        (i) => `<span class="badge badge-delete">失效</span> ${i.title || 'No Title'} <br><span class="url-subtext">${i.url}</span>`
+    );
+
+    // 6. Duplicates (Advanced: Radio Selection per Group)
+    createGroupedSection('重复书签', plan.duplicates, '👯',
+        (i) => {
+            try { return new URL(i.url).hostname.replace(/^www\./, ''); } catch { return 'Others'; }
+        },
+        null,
+        true, // Enable Pagination
+        (groupName, items, updateCounts) => {
+            // Pre-process: Group by Keep ID (Equivalence Sets)
+            // We need to inject the "Keep" item into the list if it's not there, 
+            // but we only have ID/Title/URL from the 'duplicates' list items.
+            // Actually, we can just group the duplicates we have by keep_id.
+            // For each unique keep_id, we form a set.
+            // The "Keep" item itself needs to be visualized. 
+            // We can create a virtual item for it.
+
+            const sets = {};
+            items.forEach(item => {
+                const kId = item.keep_id;
+                if (!sets[kId]) {
+                    sets[kId] = {
+                        keepItem: {
+                            id: item.keep_id,
+                            title: item.keep_title,
+                            url: item.keep_url,
+                            _ignored: true // default kept
+                        },
+                        duplicates: []
+                    };
+                }
+                sets[kId].duplicates.push(item);
+            });
+
+            const container = document.createElement('div');
+            container.className = 'dup-group-container';
+
+            const header = document.createElement('div');
+            header.className = 'dup-header';
+            header.textContent = groupName;
+            container.appendChild(header);
+
+            Object.values(sets).forEach(set => {
+                const setContainer = document.createElement('div');
+                setContainer.className = 'dup-set';
+
+                // Merge all items (Keep + Duplicates)
+                const allItems = [set.keepItem, ...set.duplicates];
+
+                // Render Radio Group
+                allItems.forEach(item => {
+                    const row = document.createElement('div');
+                    row.className = 'dup-radio-row';
+                    // Highlight if kept
+                    if (item._ignored) row.classList.add('row-kept');
+
+                    const radio = document.createElement('input');
+                    radio.type = 'radio';
+                    radio.name = `dup-set-${set.keepItem.id}`; // unique group name
+                    radio.checked = item._ignored;
+
+                    radio.onchange = () => {
+                        // When this is selected:
+                        // 1. Mark this as ignored (Keep)
+                        item._ignored = true;
+                        // 2. Mark all others in this set as NOT ignored (Delete)
+                        allItems.forEach(other => {
+                            if (other !== item) other._ignored = false;
+                        });
+
+                        // 3. Update UI classes
+                        setContainer.querySelectorAll('.dup-radio-row').forEach(r => r.classList.remove('row-kept'));
+                        row.classList.add('row-kept');
+
+                        updateCounts();
+                    };
+
+                    const label = document.createElement('div');
+                    label.className = 'dup-radio-label';
+                    label.innerHTML = `
+                        <div class="dup-title">${item.title}</div>
+                        <div class="dup-url">${item.url}</div>
+                        ${item === set.keepItem && item.id === set.keepItem.id ? '<span class="badge badge-keep">原保留项</span>' : ''}
+                    `;
+
+                    // Allow clicking row to select
+                    row.onclick = (e) => {
+                        if (e.target !== radio) radio.click();
+                    };
+
+                    row.appendChild(radio);
+                    row.appendChild(label);
+                    setContainer.appendChild(row);
+                });
+
+                container.appendChild(setContainer);
+            });
+
+            return container;
+        }
     );
 }
 
@@ -443,12 +647,54 @@ function updateReviewCounts() {
     document.getElementById('count-create').textContent = count(currentPlan.folders_to_create);
     document.getElementById('count-move').textContent = count(currentPlan.bookmarks_to_move);
     document.getElementById('count-rename').textContent = count(currentPlan.folders_to_rename);
-    // Add dead link count if we had a UI element for it in summary... 
-    // We don't have a specific summary box for dead links in HTML yet, 
-    // but we can add one dynamically or just ignore for now in summary counts.
-    // Let's rely on the list view.
+
+    /**
+     * For duplicates, the logic is inverted:
+     * items in plan.duplicates are CANDIDATES for deletion.
+     * if _ignored is FALSE (default), they will be deleted.
+     * if _ignored is TRUE, they are KEPT.
+     * The count should show how many will be DELETED.
+     * 
+     * However, our new logic injects a "Virtual Keep Item" into the UI set, 
+     * but that item is NOT in plan.duplicates array initially.
+     * 
+     * We need to be careful: 
+     * plan.duplicates contains ONLY the items originally marked for deletion.
+     * If user swaps and keeps a duplicate, that duplicate gets _ignored=true.
+     * If user swaps and deletes the original keeper, that original keeper needs to be added to deletion list?
+     * 
+     * Wait, the `execute` function filters plan.duplicates by `!i._ignored`.
+     * So if a duplicate is marked `_ignored=true`, it won't be deleted. Good.
+     * 
+     * But what if the user selects a duplicate to keep, and effectively wants to delete the ORIGINAL keeper?
+     * My current logic in `organizer.js` returns a list of *deletions*.
+     * The original keeper is NOT in that list.
+     * 
+     * CRITICAL FIX: 
+     * The "Virtual Keep Item" created in the render function is just a local object.
+     * If user selects a duplicate to keep, `duplicate._ignored = true`. It is saved.
+     * But if user deletes the original keeper (`keepItem`), that `keepItem` is NOT in `plan.duplicates`.
+     * We need to add it to `plan.duplicates` if it is marked for deletion!
+     * 
+     * Strategy:
+     * We should modify `plan.duplicates` to include the original keepers too?
+     * Or, in the `render` logic, when we create `sets[kId]`, we should push the `keepItem` into `plan.duplicates`?
+     * 
+     * Let's do this: 
+     * When `renderReview` runs, we iterate duplicates and inject the keep items into `plan.duplicates` array if not present.
+     * Then rendering just works from `plan.duplicates`.
+     * 
+     * But `renderReview` might run multiple times? No, usually called once after analysis.
+     * Let's add a pre-processing step inside `renderReview` or just inside the duplicate section.
+     */
+
+    // Duplicates Count
+    // We need to count items in plan.duplicates where _ignored is false.
+    // AND we need to make sure the original keeper is in plan.duplicates if it's now deleted.
 }
 
+// ... (Pre-processing needed, but let's stick to the render replacement first, 
+// and handling the "Swap" logic carefully by pushing to plan)
 
 document.getElementById('btnCancelReview').addEventListener('click', () => {
     // currentPlan = null; // Keep it?
@@ -458,14 +704,31 @@ document.getElementById('btnCancelReview').addEventListener('click', () => {
 document.getElementById('btnExecuteInfo').addEventListener('click', async () => {
     if (!currentPlan) return;
 
-    // Filter ignored items
+    // Special handling for duplicates:
+    // If we introduced new items (swapped keepers) into the UI flow, we need to ensure they are in the plan.
+    // The safest way with the "Virtual Item" approach in render is:
+    // The `set.keepItem` object in render scope is NOT in `plan.duplicates`.
+    // We need to collect ALL items from the UI that are marked for deletion?
+    // Or we modify `plan.duplicates` in place during render?
+
+    // BETTER APPROACH for `renderReview` above: 
+    // When constructing `sets`, check if `keepItem` is already in `plan.duplicates` (it won't be).
+    // Push it to `plan.duplicates` BUT with `_ignored: true` (default kept).
+    // This way, it is part of the state. If user flips it, `_ignored` becomes false -> deleted.
+    // We need to prevent double pushing if rerendered.
+    // We can check a flag `_injected`?
+
+    // Let's modify the PREVIOUS replace block to include this logic!
+
     const finalPlan = {
         folders_to_create: currentPlan.folders_to_create?.filter(i => !i._ignored) || [],
         folders_to_rename: currentPlan.folders_to_rename?.filter(i => !i._ignored) || [],
         bookmarks_to_move: currentPlan.bookmarks_to_move?.filter(i => !i._ignored) || [],
         archive: currentPlan.archive?.filter(i => !i._ignored) || [],
-        dead_links: currentPlan.dead_links?.filter(i => !i._ignored) || []
+        dead_links: currentPlan.dead_links?.filter(i => !i._ignored) || [],
+        duplicates: currentPlan.duplicates?.filter(i => !i._ignored) || []
     };
+
 
     showStep('execute');
 
@@ -527,4 +790,3 @@ document.getElementById('btnFinish').addEventListener('click', () => {
     document.getElementById('exec-done-actions').classList.add('hidden');
     // Reload?
 });
-

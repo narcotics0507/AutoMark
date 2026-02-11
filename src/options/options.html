@@ -85,6 +85,13 @@
             <div id="step-select" class="wizard-step hidden">
                 <h3>1. 选择要整理的文件夹</h3>
                 <p class="step-desc">请勾选您希望 AI 整理的文件夹。未勾选的文件夹将不会被修改。</p>
+
+                <div class="select-all-container">
+                    <label>
+                        <input type="checkbox" id="selectAllFolders" checked> 全选/取消全选
+                    </label>
+                </div>
+
                 <div id="folder-list" class="folder-selection-list">
                     <!-- Checkboxes will be injected here -->
                     <div class="loading-spinner">加载文件夹中...</div>
@@ -97,11 +104,18 @@
                     </label>
                 </div>
 
-                <div class="step-actions">
+                <div class="step-actions action-buttons-group">
                     <button id="btnBackToWelcome" class="secondary-btn">取消</button>
-                    <div style="display: flex; gap: 10px;">
-                        <button id="btnCheckDeadLinksOnly" class="secondary-btn"
-                            style="border: 1px solid #ff9800; color: #ff9800;">仅检测死链</button>
+
+                    <div class="right-actions">
+                        <div class="tools-group">
+                            <button id="btnCheckDeadLinksOnly" class="secondary-btn tool-btn" title="扫描并移除失效的链接">
+                                检测失效链接
+                            </button>
+                            <button id="btnCheckDuplicates" class="secondary-btn tool-btn" title="扫描并清理重复的书签">
+                                检测重复书签
+                            </button>
+                        </div>
                         <button id="btnConfirmSelection" class="primary-btn">开始智能分析</button>
                     </div>
                 </div>
@@ -109,7 +123,7 @@
 
             <!-- Step 2: Analysis Progress -->
             <div id="step-analyze" class="wizard-step hidden">
-                <h3>2. AI正在分析</h3>
+                <h3 id="analyze-step-title">2. AI正在分析</h3>
                 <div class="progress-container">
                     <div class="progress-header">
                         <span id="analyze-status">正在连接 AI...</span>
@@ -130,7 +144,7 @@
             <!-- Step 3: Review Plan -->
             <div id="step-review" class="wizard-step hidden">
                 <h3>3. 审查整理计划</h3>
-                <p class="step-desc">AI 建议进行以下更改。您可以取消勾选不想执行的操作。</p>
+                <p class="step-desc" id="review-step-desc">AI 建议进行以下更改。您可以取消勾选不想执行的操作。</p>
 
                 <div class="plan-summary">
                     <div class="summary-item">

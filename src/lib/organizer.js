@@ -52,9 +52,8 @@ export class Organizer {
     }
 
     // New method: Analyze only
-    // options: { checkDeadLinks: boolean, skipAI: boolean }
     async analyze(selectedFolderIds = null, options = {}) {
-        const { checkDeadLinks = false, skipAI = false } = options;
+        const { checkDeadLinks = false, skipAI = false, checkDuplicates = false } = options;
 
         this.isCancelled = false;
         this.onStatus('scanning', '正在扫描', '获取书签数据...');
@@ -90,7 +89,8 @@ export class Organizer {
             folders_to_rename: [],
             bookmarks_to_move: [],
             archive: [],
-            dead_links: []
+            dead_links: [],
+            duplicates: []
         };
 
         // 2. Dead Link Detection
@@ -104,7 +104,20 @@ export class Organizer {
             if (this.isCancelled) throw new Error('操作已取消');
         }
 
-        // 3. AI Analysis (Optional)
+        // 3. Duplicate Detection
+        if (checkDuplicates) {
+            this.onStatus('checking', '检测重复', '正在检测重复书签...');
+            this.onLog('开始检测重复书签...');
+            const duplicates = await this.checkDuplicates(flatList);
+            masterPlan.duplicates = duplicates;
+            this.onLog(`检测完成，发现 ${duplicates.length} 个重复/从属书签。`);
+
+            if (this.isCancelled) throw new Error('操作已取消');
+        }
+
+        // 4. AI Analysis (Optional)
+        // Only run AI if NOT skipped AND (we are not just doing utilities like deadlinks/duplicates OR user wants both)
+        // Actually, if skipAI is true, we skip. 
         if (!skipAI) {
             this.onStatus('analyzing', '正在思考', 'AI 正在分批分析您的书签...');
 
@@ -161,49 +174,141 @@ export class Organizer {
         const idMap = new Map();
         flatList.forEach(item => idMap.set(item.id, item));
 
-        if (masterPlan.bookmarks_to_move) {
-            masterPlan.bookmarks_to_move.forEach(item => {
-                const bm = idMap.get(item.bookmark_id);
-                if (bm) {
-                    item.title = bm.title;
-                    item.url = bm.url;
-                    item.old_path = bm.path;
-                }
-            });
-        }
-
-        if (masterPlan.folders_to_rename) {
-            masterPlan.folders_to_rename.forEach(item => {
-                const bm = idMap.get(item.bookmark_id);
-                if (bm) {
-                    item.old_title = bm.title;
-                    item.path = bm.path;
-                }
-            });
-        }
-
-        if (masterPlan.archive) {
-            masterPlan.archive.forEach(item => {
-                const bm = idMap.get(item.bookmark_id);
-                if (bm) {
-                    item.title = bm.title;
-                    item.url = bm.url;
-                }
-            });
-        }
-
-        if (masterPlan.dead_links) {
-            masterPlan.dead_links.forEach(item => {
+        const hydrate = (arr, type) => {
+            if (!arr) return;
+            arr.forEach(item => {
                 const bm = idMap.get(item.bookmark_id);
                 if (bm) {
                     item.title = item.title || bm.title;
                     item.url = item.url || bm.url;
-                    item.path = bm.path;
+                    item.old_path = bm.path;
+                    if (type === 'rename') {
+                        item.old_title = bm.title;
+                        item.path = bm.path;
+                    }
                 }
             });
         }
 
+        hydrate(masterPlan.bookmarks_to_move);
+        hydrate(masterPlan.archive);
+        hydrate(masterPlan.dead_links);
+        hydrate(masterPlan.duplicates);
+        hydrate(masterPlan.folders_to_rename, 'rename');
+
         return masterPlan;
+    }
+
+    async checkDuplicates(bookmarks) {
+        const toDelete = [];
+
+        // Helper to normalize URL for comparison
+        const normalize = (urlString) => {
+            try {
+                const u = new URL(urlString);
+                // 1. Ignore protocol (http vs https) - just use https for key
+                // 2. Ignore www prefix in hostname
+                let host = u.hostname.replace(/^www\./, '');
+
+                // 3. Remove UTM parameters and other common tracking
+                // We recreate the search params
+                const params = new URLSearchParams(u.search);
+                const keys = Array.from(params.keys());
+                keys.forEach(key => {
+                    if (key.startsWith('utm_') || key === 'fbclid' || key === 'gclid') {
+                        params.delete(key);
+                    }
+                });
+
+                // Reconstruct
+                // Note: we don't change the actual bookmark URL, just the key for comparison
+                return `${host}${u.pathname}${params.toString() ? '?' + params.toString() : ''}${u.hash}`;
+            } catch (e) {
+                return urlString; // Fallback
+            }
+        };
+
+        // Group by Normalized Host
+        const byHost = {};
+        for (const bm of bookmarks) {
+            try {
+                const url = new URL(bm.url);
+                // Use normalized host for grouping too
+                const host = url.hostname.replace(/^www\./, '');
+                if (!byHost[host]) byHost[host] = [];
+                byHost[host].push({ ...bm, parsedUrl: url, normalizedKey: normalize(bm.url) });
+            } catch (e) {
+                // Ignore invalid URLs
+            }
+        }
+
+        for (const host in byHost) {
+            const group = byHost[host];
+            if (group.length < 2) continue;
+
+            // Find Root bookmarks
+            // Root criteria: pathname is '/' or empty, and no query/hash (mostly)
+            const isRoot = (item) => {
+                const p = item.parsedUrl.pathname;
+                return (p === '/' || p === '') && item.parsedUrl.search === '' && item.parsedUrl.hash === '';
+            };
+
+            const roots = group.filter(isRoot);
+
+            if (roots.length > 0) {
+                // Case 1: Root exits.
+                // Keep ONE root (prefer https if available, or just first).
+                // Mark ALL others in this group as duplicates.
+
+                const keeper = roots[0];
+
+                // All other items in group are duplicates
+                for (const item of group) {
+                    if (item.id === keeper.id) continue;
+
+                    let reason = 'Duplicate Subpage';
+                    if (isRoot(item)) reason = 'Duplicate Root';
+
+                    toDelete.push({
+                        bookmark_id: item.id,
+                        title: item.title,
+                        url: item.url,
+                        reason: reason,
+                        keep_id: keeper.id,
+                        keep_title: keeper.title,
+                        keep_url: keeper.url // Added for UI
+                    });
+                }
+            } else {
+                // Case 2: No Root exists. Group by Normalized URL Key.
+                const byKey = {};
+                for (const item of group) {
+                    const key = item.normalizedKey;
+                    if (!byKey[key]) byKey[key] = [];
+                    byKey[key].push(item);
+                }
+
+                for (const key in byKey) {
+                    const exacts = byKey[key];
+                    if (exacts.length > 1) {
+                        // Keep first, delete rest
+                        const keeper = exacts[0];
+                        for (let i = 1; i < exacts.length; i++) {
+                            toDelete.push({
+                                bookmark_id: exacts[i].id,
+                                title: exacts[i].title,
+                                url: exacts[i].url,
+                                reason: 'Exact/Normalized Duplicate',
+                                keep_id: keeper.id,
+                                keep_title: keeper.title,
+                                keep_url: keeper.url // Added for UI
+                            });
+                        }
+                    }
+                }
+            }
+        }
+        return toDelete;
     }
 
     async checkDeadLinks(bookmarks) {
@@ -324,7 +429,7 @@ export class Organizer {
 
     async executePlanLogic(plan) {
         const gets = (arr) => arr ? arr.length : 0;
-        const totalOps = gets(plan.folders_to_create) + gets(plan.folders_to_rename) + gets(plan.bookmarks_to_move) + gets(plan.archive) + gets(plan.dead_links);
+        const totalOps = gets(plan.folders_to_create) + gets(plan.folders_to_rename) + gets(plan.bookmarks_to_move) + gets(plan.archive) + gets(plan.dead_links) + gets(plan.duplicates);
         let completedOps = 0;
 
         const updateProgress = (msg) => {
@@ -407,6 +512,21 @@ export class Organizer {
                     this.onLog(`  ! 移除失效链接失败 ${item.bookmark_id}: ${e.message}`);
                 }
                 updateProgress(`移除失效链接...`);
+            }
+        }
+
+        // 4.6 Duplicates
+        if (plan.duplicates) {
+            this.onLog(`[dup] 建议移除 ${plan.duplicates.length} 个重复书签`);
+            for (const item of plan.duplicates) {
+                if (this.isCancelled) throw new Error('操作已取消');
+                try {
+                    await this.bm.removeBookmark(item.bookmark_id);
+                    this.onLog(`  x 移除重复: ${item.title} (保留: ${item.keep_title || 'Unknown'})`);
+                } catch (e) {
+                    this.onLog(`  ! 移除重复失败 ${item.bookmark_id}: ${e.message}`);
+                }
+                updateProgress(`移除重复书签...`);
             }
         }
     }
