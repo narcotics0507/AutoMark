@@ -58,19 +58,48 @@ chrome.bookmarks.onCreated.addListener(async (id, bookmark) => {
         Logger.log(`AI suggestion: ${JSON.stringify(result)}`);
 
         if (result && result.path) {
-            const targetPath = result.path;
+            let targetPath = result.path;
             const reason = result.reason;
             const originalParentId = bookmark.parentId;
 
-            // 5. Move
-            const targetId = await bm.ensureFolder(targetPath, '1'); // '1' is bookmarks bar usually
-            if (targetId === originalParentId) {
-                Logger.log('Target is same as current. No move.');
-                return;
+            // Handle Root Folders in Path
+            // AI might return "Bookmarks Bar/Folder", but ensureFolder('1') expects "Folder"
+            // We need to check if the path starts with the name of the root folders.
+            const [barNode] = await new Promise(r => chrome.bookmarks.get('1', r));
+            const [otherNode] = await new Promise(r => chrome.bookmarks.get('2', r));
+
+            let rootId = '1'; // Default
+            let relativePath = targetPath;
+
+            if (targetPath.startsWith(barNode.title)) {
+                rootId = '1';
+                if (targetPath === barNode.title) {
+                    relativePath = '';
+                } else if (targetPath.startsWith(barNode.title + '/')) {
+                    relativePath = targetPath.substring(barNode.title.length + 1);
+                }
+            } else if (targetPath.startsWith(otherNode.title)) {
+                rootId = '2';
+                if (targetPath === otherNode.title) {
+                    relativePath = '';
+                } else if (targetPath.startsWith(otherNode.title + '/')) {
+                    relativePath = targetPath.substring(otherNode.title.length + 1);
+                }
             }
 
-            await bm.moveBookmark(id, targetId);
-            Logger.log(`Moved to ${targetPath} (ID: ${targetId})`);
+            // 5. Move
+            let targetId = rootId;
+            if (relativePath) {
+                targetId = await bm.ensureFolder(relativePath, rootId);
+            }
+            let isSamePath = false;
+            if (targetId === originalParentId) {
+                Logger.log('Target is same as current. No move, but notifying user.');
+                isSamePath = true;
+            } else {
+                await bm.moveBookmark(id, targetId);
+                Logger.log(`Moved to ${targetPath} (ID: ${targetId})`);
+            }
 
             // 6. Notify User (Top-Right Popup Window)
             // Calculate position: Top-Right of screen
@@ -91,7 +120,7 @@ chrome.bookmarks.onCreated.addListener(async (id, bookmark) => {
             // Assuming 1920x1080, left=1500. 
             // Chrome might handle out-of-bounds by clamping.
             chrome.windows.create({
-                url: `src/options/quick_organize_notify.html?id=${id}&path=${encodeURIComponent(targetPath)}&old=${originalParentId}`,
+                url: `src/options/quick_organize_notify.html?id=${id}&path=${encodeURIComponent(targetPath)}&old=${originalParentId}&same=${isSamePath}&targetId=${targetId}`,
                 type: 'popup',
                 width: width,
                 height: height,
