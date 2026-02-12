@@ -1,11 +1,11 @@
-# AutoMark (Chrome 扩展)
+# AutoMark (Chromium 扩展)
 
-这是一款强大的 Chrome 浏览器扩展，利用先进的 AI 模型（OpenAI GPT-4, Google Gemini, DeepSeek 等）智能分析、分类并清理您的浏览器书签，助您轻松维护整洁有序的知识库。
+这是一款强大的 Chromium 浏览器扩展（支持 Chrome, Edge, Brave 等），利用先进的 AI 模型（OpenAI GPT-4, Google Gemini, DeepSeek 等）智能分析、分类并清理您的浏览器书签，助您轻松维护整洁有序的知识库。
 
 ## ✨ 核心功能
 
 ### 1. 🤖 自动分类 (Automatic Categorization)
-当您添加新书签时，扩展会自动接管并进行智能处理：
+当您添加新书签时，扩展会自动接管并进行智能处理（支持 Chrome 和 Edge）：
 *   **自动分类**：AI 实时分析标题和 URL，将其移动到最合适的现有文件夹，或创建合理的层级结构。
 *   **即时反馈**：右上角弹窗展示分类结果和 AI 的推荐理由。
 *   **完全掌控**：
@@ -26,16 +26,17 @@
 ### 4. ⚙️ 灵活配置与隐私
 *   **多模型支持**：内置支持 OpenAI (GPT-3.5/4), Google Gemini, DeepSeek，同时支持自定义 OpenAI 兼容接口（如 One API）。
 *   **本地日志**：内置“系统日志”查看器，**实时监控**扩展运行状态，方便排查 API 连接或分类失败的原因。
-*   **隐私优先**：您的 API Key 和配置仅存储在本地浏览器（Chrome Storage）。书签数据仅在您使用 AI 功能时发送至您指定的 API 端点，绝不上传至任何第三方服务器。
+*   **隐私优先**：您的 API Key 和配置仅存储在本地浏览器（LocalStorage）。书签数据仅在您使用 AI 功能时发送至您指定的 API 端点，绝不上传至任何第三方服务器。
 
 ---
 
 ## 🚀 安装与设置
 
 1.  **加载扩展**
-    *   打开 Chrome 浏览器，访问 `chrome://extensions/`。
-    *   开启右上角的 **开发者模式**。
-    *   点击 **加载已解压的扩展程序**，选择本项目根目录。
+    *   **Chrome 用户**：打开 `chrome://extensions/`。
+    *   **Edge 用户**：打开 `edge://extensions/`。
+    *   开启右上角（或左下角）的 **开发者模式 (Developer Mode)**。
+    *   点击 **加载已解压的扩展程序 (Load unpacked)**，选择本项目根目录。
 
 2.  **配置 AI**
     *   点击扩展图标进入 **设置页面**。
