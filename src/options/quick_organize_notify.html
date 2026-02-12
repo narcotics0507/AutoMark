@@ -6,64 +6,147 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AutoMark</title>
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             margin: 0;
-            padding: 15px;
+            padding: 0;
+            /* Remove body padding, move to container */
             background: #fff;
             font-family: 'Segoe UI', sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
             height: 100vh;
-            box-sizing: border-box;
             text-align: center;
+            overflow: hidden;
+        }
+
+        /* Success View & Folder View Container */
+        .view-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 12px 15px;
+            /* Internal padding */
+            overflow-y: auto;
+            /* Allow internal scrolling if needed */
+        }
+
+        /* Hide scrollbar for Chrome */
+        .view-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .view-container::-webkit-scrollbar-thumb {
+            background-color: #ccc;
+            border-radius: 3px;
+        }
+
+        #folder-view {
+            display: none;
         }
 
         .message {
-            font-size: 1rem;
-            color: #333;
             font-size: 0.9rem;
             color: #666;
-            margin-bottom: 2px;
+            margin-bottom: 5px;
+            flex-shrink: 0;
         }
 
         .path {
             font-weight: bold;
             color: #4CAF50;
-            font-size: 1.1rem;
-            margin-bottom: 5px;
+            font-size: 1rem;
+            margin-bottom: 8px;
             word-break: break-all;
+            line-height: 1.3;
+            max-height: 50px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            flex-shrink: 0;
+        }
+
+        /* Title Input */
+        .title-section {
+            width: 100%;
+            margin-bottom: 8px;
+            text-align: left;
+            flex-shrink: 0;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #2196F3;
+        }
+
+        /* Suggestion */
+        #ai-suggestion {
+            margin-top: 6px;
+            font-size: 0.85rem;
+            color: #4CAF50;
+            cursor: pointer;
+            display: none;
+            text-align: left;
+            padding-left: 2px;
+        }
+
+        #ai-suggestion:hover {
+            opacity: 0.8;
         }
 
         .reason {
             font-size: 0.8rem;
             color: #999;
             font-style: italic;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
+            width: 100%;
+            text-align: left;
+            padding-left: 2px;
         }
 
+        /* Access Buttons */
         .actions {
             display: flex;
             gap: 10px;
             width: 100%;
-            justify-content: center;
+            margin-top: auto;
+            /* Push to bottom */
+            flex-shrink: 0;
         }
 
         button {
-            padding: 8px 16px;
+            padding: 8px 0;
             border-radius: 4px;
             border: none;
             cursor: pointer;
             font-size: 0.9rem;
             flex: 1;
-            max-width: 100px;
+            font-weight: 500;
+            transition: background-color 0.2s;
         }
 
         .btn-undo {
             background: #f5f5f5;
-            color: #333;
-            border: 1px solid #ddd;
+            color: #555;
+            border: 1px solid #e0e0e0;
         }
 
         .btn-undo:hover {
@@ -71,12 +154,12 @@
         }
 
         .btn-change {
-            background: #4CAF50;
+            background: #FF9800;
             color: white;
         }
 
         .btn-change:hover {
-            background: #45a049;
+            background: #F57C00;
         }
 
         .btn-confirm {
@@ -86,6 +169,57 @@
 
         .btn-confirm:hover {
             background: #1976D2;
+        }
+
+        /* Folder Tree Styles */
+        #folder-tree {
+            width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            background: white;
+            flex-grow: 1;
+            min-height: 200px;
+            overflow-y: auto;
+            text-align: left;
+        }
+
+        .tree-item {
+            padding: 6px 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            font-size: 0.9rem;
+            color: #333;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background 0.1s;
+        }
+
+        .tree-item:last-child {
+            border-bottom: none;
+        }
+
+        .tree-item:hover {
+            background-color: #f5f5f5;
+        }
+
+        .tree-item.selected {
+            background-color: #e3f2fd;
+            /* Light Blue */
+            color: #1976D2;
+            font-weight: 500;
+        }
+
+        .tree-icon {
+            margin-right: 6px;
+            font-size: 1rem;
+            line-height: 1;
+        }
+
+        .tree-text {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .timer {
@@ -102,15 +236,43 @@
 
 <body>
     <div class="timer" id="timer-bar"></div>
-    <div class="message">已自动将书签移动到</div>
-    <div class="path" id="target-path">...</div>
-    <div class="reason" id="ai-reason"></div>
-    <div class="actions">
-        <button id="btnUndo" class="btn-undo">↩️ 撤销</button>
-        <button id="btnChange" class="btn-change">✏️ 修改</button>
-        <button id="btnConfirm" class="btn-confirm">✅ 确认</button>
+
+    <!-- Main View -->
+    <div id="main-view" class="view-container">
+        <div class="message">已自动将书签移动到</div>
+        <div class="path" id="target-path">...</div>
+
+        <!-- Title Editing Area -->
+        <div class="title-section" id="title-section">
+            <input type="text" id="bookmark-title" placeholder="书签标题">
+            <div id="ai-suggestion">
+                💡 建议: <span id="suggestion-text" style="text-decoration: underline;"></span>
+            </div>
+        </div>
+
+        <div class="reason" id="ai-reason"></div>
+
+        <div class="actions">
+            <!-- Undo: 20% width -->
+            <button id="btnUndo" class="btn-undo" style="flex: 0.3;">↩️ 撤销</button>
+            <!-- Change: 35% width -->
+            <button id="btnChange" class="btn-change" style="flex: 0.35;">📂 修改目录</button>
+            <!-- Confirm: 45% width -->
+            <button id="btnConfirm" class="btn-confirm" style="flex: 0.35;">✅ 确认</button>
+        </div>
     </div>
-    <script type="module" src="quick_organize_notify.js"></script>
+
+    <!-- Folder Selection View -->
+    <div id="folder-view" class="view-container">
+        <div class="message" style="margin-bottom: 10px; font-weight: 500;">请选择新的目标文件夹:</div>
+        <div id="folder-tree"></div>
+        <div class="actions">
+            <button id="btnCancelFolder" class="btn-undo">取消</button>
+            <button id="btnSaveFolder" class="btn-confirm">确定</button>
+        </div>
+    </div>
+
+    <script src="quick_organize_notify.js"></script>
 </body>
 
 </html>

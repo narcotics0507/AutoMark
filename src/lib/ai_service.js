@@ -33,11 +33,13 @@ Rules:
 2. **Fallback**: If no existing folder fits, create a new logical category path (e.g., "Technology/AI", "Tools/Design").
 3. **Language**: ${langInstruction}
 4. **Reason**: Briefly explain why you chose this path (max 10 words).
+5. **Suggestion**: Propose a concise title (CN: 8-15 chars, EN: 3-6 words) if the original is too long.
 
 Output JSON format:
 {
   "path": "Target/Folder/Path",
-  "reason": "Brief explanation"
+  "reason": "Brief explanation",
+  "suggested_title": "Optimized Title"
 }
 `;
         // Re-use callOpenAICompatible or callGemini logic?
@@ -58,7 +60,7 @@ Output JSON format:
         // result is the JSON object.
         // My prompt asks for { path: ..., reason: ... }
         if (result.path) {
-            return { path: result.path, reason: result.reason || 'AI Decision' };
+            return { path: result.path, reason: result.reason || 'AI Decision', suggested_title: result.suggested_title };
         }
         return null;
     }
@@ -147,14 +149,22 @@ REQUIREMENTS:
 2. ${langPrompt}
 3. Target Structure Reference (Adapt as needed):
 ${structureRef}
-4. Output MUST be strict JSON matching this schema:
+4. **Title Suggestion (Auto-Rename)**:
+   - For each bookmark, PROPOSE a concise title if the original is too long or messy.
+   - **Visual Length Goal**:
+     - **Chinese**: 8-15 characters.
+     - **English**: 3-6 words (20-40 chars).
+     - Remove suffixes like "- Official Site", "- Wikipedia", etc.
+   - If the original title is already good, keep it or optimize slightly.
+
+5. Output MUST be strict JSON matching this schema:
 {
   "folders_to_create": [ { "path": "Category/Subcategory", "parent_path": "Category" } ],
   "folders_to_rename": [ { "bookmark_id": "123", "new_title": "New Name" } ],
-  "bookmarks_to_move": [ { "bookmark_id": "456", "target_folder_path": "Category/Subcategory" } ],
+  "bookmarks_to_move": [ { "bookmark_id": "456", "target_folder_path": "Category/Subcategory", "suggested_title": "Concise Title" } ],
   "archive": [ { "bookmark_id": "789", "title": "...", "reason": "duplicate|low-value" } ]
 }
-5. Assign EVERY bookmark (that is not a folder) to a folder path.
+6. Assign EVERY bookmark (that is not a folder) to a folder path.
 
 IMPORTANT:
 - **Do NOT output the full list.**

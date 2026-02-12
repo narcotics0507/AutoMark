@@ -58,7 +58,7 @@ export class Organizer {
         this.isCancelled = false;
         this.onStatus('scanning', '正在扫描', '获取书签数据...');
         this.onProgress(5, '正在读取书签...');
-        this.onLog('正在读取 Chrome 书签...');
+        this.onLog('正在读取 Chrome 书签...', 'system');
 
         // 1. Get Bookmarks
         const tree = await this.bm.getTree();
@@ -67,7 +67,7 @@ export class Organizer {
         // Filter based on selectedFolderIds if provided
         if (selectedFolderIds && selectedFolderIds.length > 0) {
             if (this.isCancelled) throw new Error('操作已取消');
-            this.onLog(`只处理选中的 ${selectedFolderIds.length} 个文件夹...`);
+            this.onLog(`只处理选中的 ${selectedFolderIds.length} 个文件夹...`, 'system');
             let newFlatList = [];
             for (const id of selectedFolderIds) {
                 if (this.isCancelled) throw new Error('操作已取消');
@@ -79,7 +79,7 @@ export class Organizer {
             flatList = [...new Map(newFlatList.map(item => [item.id, item])).values()];
         }
 
-        this.onLog(`扫描完成，共找到 ${flatList.length} 个项目。`);
+        this.onLog(`扫描完成，共找到 ${flatList.length} 个项目。`, 'system');
         this.onProgress(10, '书签扫描完成');
 
         if (this.isCancelled) throw new Error('操作已取消');
@@ -96,7 +96,7 @@ export class Organizer {
         // 2. Dead Link Detection
         if (checkDeadLinks) {
             this.onStatus('checking', '检测死链', '正在检测失效链接 (可能较慢)...');
-            this.onLog('开始检测链接有效性...');
+            this.onLog('开始检测链接有效性...', 'system');
             const deadLinks = await this.checkDeadLinks(flatList);
             masterPlan.dead_links = deadLinks;
             this.onLog(`检测完成，发现 ${deadLinks.length} 个失效链接。`);
@@ -107,7 +107,7 @@ export class Organizer {
         // 3. Duplicate Detection
         if (checkDuplicates) {
             this.onStatus('checking', '检测重复', '正在检测重复书签...');
-            this.onLog('开始检测重复书签...');
+            this.onLog('开始检测重复书签...', 'system');
             const duplicates = await this.checkDuplicates(flatList);
             masterPlan.duplicates = duplicates;
             this.onLog(`检测完成，发现 ${duplicates.length} 个重复/从属书签。`);
@@ -135,7 +135,7 @@ export class Organizer {
                 chunks.push(flatList.slice(i, i + BATCH_SIZE));
             }
 
-            this.onLog(`将分 ${chunks.length} 批次进行处理，以避免超时...`);
+            this.onLog(`将分 ${chunks.length} 批次进行处理，以避免超时...`, 'system');
 
             for (let i = 0; i < chunks.length; i++) {
                 if (this.isCancelled) throw new Error('操作已取消');
@@ -145,10 +145,10 @@ export class Organizer {
                 const progressBase = 10 + Math.floor((i / chunks.length) * 80); // 10% -> 90%
 
                 this.onProgress(progressBase, `正在分析第 ${batchNum}/${chunks.length} 批...`);
-                this.onLog(`[Batch ${batchNum}/${chunks.length}] 正在发送 ${chunk.length} 个书签...`);
+                this.onLog(`[Batch ${batchNum}/${chunks.length}] 正在发送 ${chunk.length} 个书签...`, 'system');
 
                 try {
-                    const batchPlan = await ai.generatePlan(chunk, (msg) => this.onLog(`[Net] ${msg}`));
+                    const batchPlan = await ai.generatePlan(chunk, (msg) => this.onLog(`[Net] ${msg}`, 'system'));
 
                     // Merge results
                     if (batchPlan.folders_to_create) masterPlan.folders_to_create.push(...batchPlan.folders_to_create);
@@ -156,15 +156,15 @@ export class Organizer {
                     if (batchPlan.bookmarks_to_move) masterPlan.bookmarks_to_move.push(...batchPlan.bookmarks_to_move);
                     if (batchPlan.archive) masterPlan.archive.push(...batchPlan.archive);
 
-                    this.onLog(`[Batch ${batchNum}] 分析完成，生成 ${batchPlan.bookmarks_to_move?.length || 0} 个移动指令`);
+                    this.onLog(`[Batch ${batchNum}] 分析完成，生成 ${batchPlan.bookmarks_to_move?.length || 0} 个移动指令`, 'system');
                 } catch (e) {
                     this.onLog(`[Batch ${batchNum}] ⚠️ 本批次失败: ${e.message}`, 'error');
                 }
             }
 
-            this.onLog('所有批次分析完成！');
+            this.onLog('所有批次分析完成！', 'system');
         } else {
-            this.onLog('跳过 AI 分析步骤。');
+            this.onLog('跳过 AI 分析步骤。', 'system');
         }
 
         this.onProgress(100, '分析完成，请审查计划');
@@ -201,108 +201,59 @@ export class Organizer {
 
     async checkDuplicates(bookmarks) {
         const toDelete = [];
-
-        // Helper to normalize URL for comparison
         const normalize = (urlString) => {
             try {
                 const u = new URL(urlString);
-                // 1. Ignore protocol (http vs https) - just use https for key
-                // 2. Ignore www prefix in hostname
                 let host = u.hostname.replace(/^www\./, '');
-
-                // 3. Remove UTM parameters and other common tracking
-                // We recreate the search params
                 const params = new URLSearchParams(u.search);
                 const keys = Array.from(params.keys());
                 keys.forEach(key => {
-                    if (key.startsWith('utm_') || key === 'fbclid' || key === 'gclid') {
-                        params.delete(key);
-                    }
+                    if (key.startsWith('utm_') || key === 'fbclid' || key === 'gclid') params.delete(key);
                 });
-
-                // Reconstruct
-                // Note: we don't change the actual bookmark URL, just the key for comparison
                 return `${host}${u.pathname}${params.toString() ? '?' + params.toString() : ''}${u.hash}`;
-            } catch (e) {
-                return urlString; // Fallback
-            }
+            } catch (e) { return urlString; }
         };
 
-        // Group by Normalized Host
         const byHost = {};
         for (const bm of bookmarks) {
             try {
                 const url = new URL(bm.url);
-                // Use normalized host for grouping too
                 const host = url.hostname.replace(/^www\./, '');
                 if (!byHost[host]) byHost[host] = [];
                 byHost[host].push({ ...bm, parsedUrl: url, normalizedKey: normalize(bm.url) });
-            } catch (e) {
-                // Ignore invalid URLs
-            }
+            } catch (e) { }
         }
 
         for (const host in byHost) {
             const group = byHost[host];
             if (group.length < 2) continue;
-
-            // Find Root bookmarks
-            // Root criteria: pathname is '/' or empty, and no query/hash (mostly)
             const isRoot = (item) => {
                 const p = item.parsedUrl.pathname;
                 return (p === '/' || p === '') && item.parsedUrl.search === '' && item.parsedUrl.hash === '';
             };
-
             const roots = group.filter(isRoot);
 
             if (roots.length > 0) {
-                // Case 1: Root exits.
-                // Keep ONE root (prefer https if available, or just first).
-                // Mark ALL others in this group as duplicates.
-
                 const keeper = roots[0];
-
-                // All other items in group are duplicates
                 for (const item of group) {
                     if (item.id === keeper.id) continue;
-
                     let reason = 'Duplicate Subpage';
                     if (isRoot(item)) reason = 'Duplicate Root';
-
-                    toDelete.push({
-                        bookmark_id: item.id,
-                        title: item.title,
-                        url: item.url,
-                        reason: reason,
-                        keep_id: keeper.id,
-                        keep_title: keeper.title,
-                        keep_url: keeper.url // Added for UI
-                    });
+                    toDelete.push({ check_id: 'dup', bookmark_id: item.id, title: item.title, url: item.url, reason: reason, keep_id: keeper.id, keep_title: keeper.title, keep_url: keeper.url });
                 }
             } else {
-                // Case 2: No Root exists. Group by Normalized URL Key.
                 const byKey = {};
                 for (const item of group) {
                     const key = item.normalizedKey;
                     if (!byKey[key]) byKey[key] = [];
                     byKey[key].push(item);
                 }
-
                 for (const key in byKey) {
                     const exacts = byKey[key];
                     if (exacts.length > 1) {
-                        // Keep first, delete rest
                         const keeper = exacts[0];
                         for (let i = 1; i < exacts.length; i++) {
-                            toDelete.push({
-                                bookmark_id: exacts[i].id,
-                                title: exacts[i].title,
-                                url: exacts[i].url,
-                                reason: 'Exact/Normalized Duplicate',
-                                keep_id: keeper.id,
-                                keep_title: keeper.title,
-                                keep_url: keeper.url // Added for UI
-                            });
+                            toDelete.push({ check_id: 'dup', bookmark_id: exacts[i].id, title: exacts[i].title, url: exacts[i].url, reason: 'Exact/Normalized Duplicate', keep_id: keeper.id, keep_title: keeper.title, keep_url: keeper.url });
                         }
                     }
                 }
@@ -318,21 +269,49 @@ export class Organizer {
 
         const checkUrl = async (bm) => {
             if (this.isCancelled) return;
-            try {
-                const controller = new AbortController();
-                const id = setTimeout(() => controller.abort(), 8000); // 8s timeout
 
-                await fetch(bm.url, {
-                    method: 'GET',
-                    signal: controller.signal,
-                    mode: 'no-cors'
-                });
-                clearTimeout(id);
+            const tryFetch = async (url, timeout = 15000) => {
+                const controller = new AbortController();
+                const id = setTimeout(() => controller.abort(), timeout);
+                try {
+                    await fetch(url, {
+                        method: 'GET',
+                        signal: controller.signal,
+                        mode: 'no-cors' // opaque response, strictly for connectivity check
+                    });
+                    clearTimeout(id);
+                    return true; // Alive
+                } catch (e) {
+                    clearTimeout(id);
+                    if (e.name === 'AbortError') throw new Error('Timeout');
+                    throw e;
+                }
+            };
+
+            try {
+                // 1. Try Original URL
+                await tryFetch(bm.url);
             } catch (e) {
-                if (e.name === 'AbortError') {
-                    dead.push({ bookmark_id: bm.id, url: bm.url, title: bm.title, reason: 'Timeout' });
-                } else {
-                    dead.push({ bookmark_id: bm.id, url: bm.url, title: bm.title, reason: 'Network Error' });
+                // 2. Retry Logic
+                let retried = false;
+                if (bm.url.startsWith('https://')) {
+                    try {
+                        // Fallback to HTTP
+                        const httpUrl = bm.url.replace(/^https:\/\//, 'http://');
+                        await tryFetch(httpUrl);
+                        retried = true;
+                        // If success, it's alive (just cert error or strict https)
+                    } catch (e2) {
+                        // Both failed
+                    }
+                }
+
+                if (!retried) {
+                    if (e.message === 'Timeout') {
+                        dead.push({ check_id: 'dead', bookmark_id: bm.id, url: bm.url, title: bm.title, reason: 'Timeout (15s)' });
+                    } else {
+                        dead.push({ check_id: 'dead', bookmark_id: bm.id, url: bm.url, title: bm.title, reason: 'Network Error' });
+                    }
                 }
             } finally {
                 processed++;
@@ -359,24 +338,21 @@ export class Organizer {
 
         if (this.isCancelled) throw new Error('操作已取消');
 
-        // Cleanup empty folders
-        this.onLog('[cleanup] 清理空文件夹...');
-        await this.cleanupEmptyFolders();
+        // Cleanup empty folders (Silent unless changes happen)
+        const removedCount = await this.cleanupEmptyFolders();
+        if (removedCount > 0) {
+            this.onLog(`[cleanup] 清理了 ${removedCount} 个空文件夹`, 'system');
+        }
 
         this.onProgress(100, '整理完成！');
         this.onStatus('idle', '就绪', '所有操作已完成');
     }
 
     async cleanupEmptyFolders() {
-        // Refresh tree
         const tree = await this.bm.getTree();
         let removedCount = 0;
-
-        // Recursive function to check and remove empty folders
         const checkAndRemove = async (node) => {
             if (this.isCancelled) return false;
-
-            // Skip root nodes (0, 1, 2)
             if (node.id === '0' || node.id === '1' || node.id === '2') {
                 if (node.children) {
                     for (const child of node.children) {
@@ -386,23 +362,14 @@ export class Organizer {
                 }
                 return false;
             }
-
-            // If it's a bookmark (url exists), it's not empty
-            if (node.url) {
-                return false;
-            }
-
-            // It's a folder. Check children first.
+            if (node.url) return false;
             if (node.children && node.children.length > 0) {
                 let contentCount = 0;
                 for (const child of node.children) {
                     if (this.isCancelled) return false;
                     const isRemoved = await checkAndRemove(child);
-                    if (!isRemoved) {
-                        contentCount++;
-                    }
+                    if (!isRemoved) contentCount++;
                 }
-
                 if (contentCount === 0) {
                     if (!this.isCancelled) {
                         await this.bm.removeBookmark(node.id);
@@ -412,7 +379,6 @@ export class Organizer {
                 }
                 return false;
             } else {
-                // It's a folder and has no children
                 if (!this.isCancelled) {
                     await this.bm.removeBookmark(node.id);
                     removedCount++;
@@ -420,10 +386,7 @@ export class Organizer {
                 return true;
             }
         };
-
-        if (tree && tree[0]) {
-            await checkAndRemove(tree[0]);
-        }
+        if (tree && tree[0]) await checkAndRemove(tree[0]);
         return removedCount;
     }
 
@@ -434,12 +397,12 @@ export class Organizer {
 
         const updateProgress = (msg) => {
             completedOps++;
-            const pct = Math.floor((completedOps / totalOps) * 100);
+            const pct = totalOps > 0 ? Math.floor((completedOps / totalOps) * 100) : 100;
             this.onProgress(pct, msg);
         };
 
         // 4.1 Create Folders
-        if (plan.folders_to_create) {
+        if (plan.folders_to_create && plan.folders_to_create.length > 0) {
             this.onLog(`[mkdir] 需要创建 ${plan.folders_to_create.length} 个新文件夹`);
             for (const folder of plan.folders_to_create) {
                 if (this.isCancelled) throw new Error('操作已取消');
@@ -454,7 +417,7 @@ export class Organizer {
         }
 
         // 4.2 Rename Folders
-        if (plan.folders_to_rename) {
+        if (plan.folders_to_rename && plan.folders_to_rename.length > 0) {
             this.onLog(`[rename] 需要重命名 ${plan.folders_to_rename.length} 个文件夹`);
             for (const item of plan.folders_to_rename) {
                 if (this.isCancelled) throw new Error('操作已取消');
@@ -469,7 +432,7 @@ export class Organizer {
         }
 
         // 4.3 Move Bookmarks
-        if (plan.bookmarks_to_move) {
+        if (plan.bookmarks_to_move && plan.bookmarks_to_move.length > 0) {
             this.onLog(`[move] 需要移动 ${plan.bookmarks_to_move.length} 个书签`);
             for (const move of plan.bookmarks_to_move) {
                 if (this.isCancelled) throw new Error('操作已取消');
@@ -484,7 +447,7 @@ export class Organizer {
         }
 
         // 4.4 Archive
-        if (plan.archive) {
+        if (plan.archive && plan.archive.length > 0) {
             this.onLog(`[archive] 建议归档/删除 ${plan.archive.length} 个书签`);
             const archiveId = await this.bm.ensureFolder('Archive', '1');
 
@@ -500,23 +463,26 @@ export class Organizer {
             }
         }
 
-        // 4.5 Dead Links
-        if (plan.dead_links) {
-            this.onLog(`[dead] 建议移除 ${plan.dead_links.length} 个失效链接`);
+        // 4.5 Dead Links (MOVED to Archive Folder)
+        if (plan.dead_links && plan.dead_links.length > 0) {
+            this.onLog(`[dead] 正在归档 ${plan.dead_links.length} 个失效链接...`);
+            const deadLinksId = await this.bm.ensureFolder('失效链接归档', '1');
+
             for (const item of plan.dead_links) {
                 if (this.isCancelled) throw new Error('操作已取消');
                 try {
-                    await this.bm.removeBookmark(item.bookmark_id);
-                    this.onLog(`  x 移除: ${item.url} (${item.reason})`);
+                    // Move to Archive instead of Remove
+                    await this.bm.moveBookmark(item.bookmark_id, deadLinksId);
+                    this.onLog(`  x 已归档: ${item.url}`);
                 } catch (e) {
-                    this.onLog(`  ! 移除失效链接失败 ${item.bookmark_id}: ${e.message}`);
+                    this.onLog(`  ! 归档失效链接失败 ${item.bookmark_id}: ${e.message}`);
                 }
-                updateProgress(`移除失效链接...`);
+                updateProgress(`归档失效链接...`);
             }
         }
 
         // 4.6 Duplicates
-        if (plan.duplicates) {
+        if (plan.duplicates && plan.duplicates.length > 0) {
             this.onLog(`[dup] 建议移除 ${plan.duplicates.length} 个重复书签`);
             for (const item of plan.duplicates) {
                 if (this.isCancelled) throw new Error('操作已取消');

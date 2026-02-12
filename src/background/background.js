@@ -110,9 +110,18 @@ async function processBookmark(id) {
 
             // 6. Notify User
             const width = 450;
-            const height = 200;
+            const height = 420; // Compact height with internal scrolling
+            let notifyUrl = `src/options/quick_organize_notify.html?id=${id}&path=${encodeURIComponent(targetPath)}&old=${originalParentId}&same=${isSamePath}&targetId=${targetId}`;
+
+            // Pass original title and suggested title (Truncate to avoid URL limits)
+            const safeTitle = bookmark.title.length > 100 ? bookmark.title.substring(0, 100) + '...' : bookmark.title;
+            notifyUrl += `&msg=${encodeURIComponent(safeTitle)}`;
+            if (result.suggested_title) {
+                notifyUrl += `&suggestion=${encodeURIComponent(result.suggested_title)}`;
+            }
+
             chrome.windows.create({
-                url: `src/options/quick_organize_notify.html?id=${id}&path=${encodeURIComponent(targetPath)}&old=${originalParentId}&same=${isSamePath}&targetId=${targetId}`,
+                url: notifyUrl,
                 type: 'popup',
                 width: width,
                 height: height,
@@ -154,12 +163,16 @@ chrome.bookmarks.onCreated.addListener(async (id, bookmark) => {
 
 
 // 3. On Moved -> Cancel Timer (User manually filed it)
+// 3. On Moved -> Reset Timer (User might be organizing, let's wait until they settle)
 chrome.bookmarks.onMoved.addListener((id, moveInfo) => {
     if (processingQueue.has(id)) {
         const item = processingQueue.get(id);
         clearTimeout(item.timeoutId);
-        processingQueue.delete(id);
-        Logger.log(`Bookmark ${id} moved manually. Auto-categorization cancelled.`);
+
+        // Reset timer
+        Logger.log(`Bookmark ${id} moved. Resetting timer...`);
+        const timeoutId = setTimeout(() => processBookmark(id), DEBOUNCE_DELAY);
+        processingQueue.set(id, { timeoutId, startTime: Date.now() });
     }
 });
 
