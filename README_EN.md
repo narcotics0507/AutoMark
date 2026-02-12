@@ -1,6 +1,6 @@
 # AutoMark
 
-[简体中文](README_zh.md) | **English**
+[简体中文](README.md) | **English**
 
 A powerful browser extension for Chromium (Chrome, Edge, Brave, etc.) that uses AI models (OpenAI GPT-4, Google Gemini, DeepSeek, etc.) to intelligently analyze, categorize, and clean up your browser bookmarks.
 
