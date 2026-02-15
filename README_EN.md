@@ -60,4 +60,7 @@ We provide a set of tools to keep your bookmark library healthy:
 
 ---
 
-**License**: MIT
+## 📄 Privacy & License
+
+*   **Privacy Policy**: [PRIVACY.md](PRIVACY.md) (Your data privacy is strictly protected)
+*   **License**: Copyright (c) 2026 narcotics0507. All Rights Reserved. (No commercial use or distribution allowed)

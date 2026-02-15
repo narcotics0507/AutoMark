@@ -61,4 +61,7 @@ AutoMark 是一款支持 Chromium 浏览器（Chrome, Edge, Brave 等）的扩�
 
 ---
 
-**License**: MIT
+## 📄 隐私与协议
+
+*   **隐私政策**: [PRIVACY.md](PRIVACY.md) (我们会严格保护您的数据隐私)
+*   **License**: Copyright (c) 2026 narcotics0507. All Rights Reserved. (保留所有权利，禁止商业使用)
