@@ -34,6 +34,32 @@ async function getFolderContext(bm) {
 }
 
 // Core Processing Logic (Extracted)
+// Helper to determine notification position based on active window
+async function getNotificationPosition(width, height) {
+    let left = 100;
+    let top = 100;
+    try {
+        const win = await new Promise(resolve => {
+            chrome.windows.getLastFocused({}, (window) => {
+                if (chrome.runtime.lastError) {
+                    resolve(null);
+                } else {
+                    resolve(window);
+                }
+            });
+        });
+
+        if (win && win.left !== undefined) {
+            // Position top-right of the active window
+            left = win.left + win.width - width - 20;
+            top = win.top + 20;
+        }
+    } catch (e) {
+        Logger.error(`Failed to get last focused window: ${e.message}`);
+    }
+    return { left, top };
+}
+
 async function processBookmark(id) {
     // Remove from queue processing
     processingQueue.delete(id);
@@ -120,13 +146,14 @@ async function processBookmark(id) {
                 notifyUrl += `&suggestion=${encodeURIComponent(result.suggested_title)}`;
             }
 
+            const pos = await getNotificationPosition(width, height);
             chrome.windows.create({
                 url: notifyUrl,
                 type: 'popup',
                 width: width,
                 height: height,
-                left: 2000,
-                top: 50,
+                left: pos.left,
+                top: pos.top,
                 focused: true
             });
         } else {
@@ -135,13 +162,16 @@ async function processBookmark(id) {
     } catch (e) {
         Logger.error(`Auto-categorize failed: ${e.message}`);
         try {
+            const width = 450;
+            const height = 200;
+            const pos = await getNotificationPosition(width, height);
             chrome.windows.create({
                 url: `src/options/quick_organize_notify.html?error=${encodeURIComponent(e.message)}&id=${id}`,
                 type: 'popup',
-                width: 450,
-                height: 200,
-                left: 2000,
-                top: 50,
+                width: width,
+                height: height,
+                left: pos.left,
+                top: pos.top,
                 focused: true
             });
         } catch (winErr) { }
