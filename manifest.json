@@ -6,7 +6,6 @@
   "permissions": [
     "bookmarks",
     "storage",
-    "notifications",
     "downloads"
   ],
   "icons": {

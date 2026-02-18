@@ -254,7 +254,7 @@ chrome.bookmarks.onCreated.addListener(async (id, bookmark) => {
             isImporting = false;
             creationTimestamps = [];
             Logger.log('[ImportGuard] Import activity stopped. Resuming normal operation.');
-            chrome.notifications.clear('import-guard-notify');
+
         }, IMPORT_PAUSE_DURATION);
         return;
     }
