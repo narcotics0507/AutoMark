@@ -5,35 +5,39 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AutoMark</title>
-  <style>
-    body {
-      width: 300px;
-      padding: 20px;
-      font-family: sans-serif;
-      text-align: center;
-    }
-
-    button {
-      padding: 10px 20px;
-      background: #4CAF50;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      width: 100%;
-      margin-top: 10px;
-    }
-
-    button:hover {
-      background: #45a049;
-    }
-  </style>
+  <link rel="stylesheet" href="popup.css">
 </head>
 
 <body>
-  <h3>AutoMark</h3>
-  <p>点击下方按钮进入功能面板</p>
-  <button id="btnOpenOptions">打开控制台</button>
+  <div class="container">
+    <header>
+      <div class="brand">
+        <h1>AutoMark</h1>
+      </div>
+      <span class="version">v1.0.7</span>
+    </header>
+
+    <div class="status-card">
+      <div class="status-icon" id="statusIcon">👋</div>
+      <h2 id="statusText">欢迎使用 AutoMark</h2>
+
+    </div>
+
+    <div class="actions">
+      <button id="btnOpenOptions" class="primary-btn">
+        打开控制台
+      </button>
+    </div>
+
+    <div id="log-area" class="log-container hidden">
+      <h3>运行日志</h3>
+      <ul id="logList"></ul>
+    </div>
+
+    <footer>
+      <span>Powered by sonic</span>
+    </footer>
+  </div>
   <script src="popup.js" type="module"></script>
 </body>
 

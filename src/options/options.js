@@ -1,7 +1,7 @@
-import { AIService } from '../lib/ai_service.js';
-import { Organizer } from '../lib/organizer.js';
-import { Logger } from '../lib/logger.js';
-import { BookmarkExporter } from '../lib/exporter.js';
+import { AIService } from '../../src/lib/ai_service.js';
+import { Organizer } from '../../src/lib/organizer.js';
+import { Logger } from '../../src/lib/logger.js';
+import { BookmarkExporter } from '../../src/lib/exporter.js';
 
 const DEFAULTS = {
     openai: {
@@ -28,6 +28,23 @@ document.getElementById('btnTest').addEventListener('click', testConnection);
 document.getElementById('btnTest').addEventListener('click', testConnection);
 document.getElementById('apiProvider').addEventListener('change', handleProviderChange);
 document.getElementById('btnRefreshLogs').addEventListener('click', refreshLogs);
+
+// Copy Logs
+document.getElementById('btnCopyLogs').addEventListener('click', async () => {
+    const logsEl = document.getElementById('systemLogs');
+    const btn = document.getElementById('btnCopyLogs');
+    if (!logsEl) return;
+
+    try {
+        await navigator.clipboard.writeText(logsEl.textContent);
+        const originalText = btn.textContent;
+        btn.textContent = '已复制';
+        setTimeout(() => { btn.textContent = originalText; }, 1500);
+    } catch (e) {
+        btn.textContent = '复制失败';
+        setTimeout(() => { btn.textContent = '复制日志'; }, 1500);
+    }
+});
 
 // Restore Event listener for the Start button
 
@@ -237,13 +254,13 @@ document.getElementById('btnBackup').addEventListener('click', async () => {
         const btn = document.getElementById('btnBackup');
         const originText = btn.innerHTML;
         btn.disabled = true;
-        btn.innerHTML = '<span class="icon">⏳</span> 正在导出...';
+        btn.innerHTML = '正在导出...';
 
         const exporter = new BookmarkExporter();
         await exporter.exportAndDownload();
 
         showStatus('书签备份已开始下载', 'green');
-        btn.innerHTML = '<span class="icon">✅</span> 导出成功';
+        btn.innerHTML = '导出成功';
         setTimeout(() => {
             btn.innerHTML = originText;
             btn.disabled = false;
@@ -251,7 +268,7 @@ document.getElementById('btnBackup').addEventListener('click', async () => {
     } catch (e) {
         showStatus('备份失败: ' + e.message, 'red');
         document.getElementById('btnBackup').disabled = false;
-        document.getElementById('btnBackup').innerHTML = '<span class="icon">📥</span> 备份书签';
+        document.getElementById('btnBackup').innerHTML = '备份书签';
     }
 });
 

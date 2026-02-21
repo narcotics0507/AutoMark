@@ -105,7 +105,7 @@ function init() {
 
         const pathEl = document.getElementById('target-path');
         pathEl.textContent = warningMsg;
-        pathEl.style.color = '#ff9800'; // Orange
+        pathEl.style.color = '#ff9f0a'; // Apple Orange
         pathEl.style.fontSize = '0.9rem';
         pathEl.style.fontWeight = 'normal';
 
@@ -119,7 +119,7 @@ function init() {
 
         const btnConfirm = document.getElementById('btnConfirm');
         btnConfirm.textContent = '知道了';
-        btnConfirm.style.background = '#ff9800';
+        btnConfirm.style.background = '#0071e3';
         btnConfirm.onclick = () => window.close();
 
         // Auto close after 5s?
@@ -162,7 +162,7 @@ function init() {
 
                 suggestionDiv.onclick = () => {
                     input.value = suggestion;
-                    input.style.borderColor = '#4CAF50';
+                    input.style.borderColor = '#0071e3';
                     stopTimer();
                 };
             }

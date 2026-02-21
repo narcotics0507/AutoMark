@@ -1,4 +1,4 @@
-import { BookmarkManager } from '../lib/bookmark_manager.js';
+import { BookmarkManager } from '../../src/lib/bookmark_manager.js';
 
 const params = new URLSearchParams(window.location.search);
 const bookmarkId = params.get('id');
@@ -25,13 +25,8 @@ async function init() {
 
     // 2. Load Folders
     const tree = await bmManager.getTree();
-    // Use flatten but keep structure info? 
-    // Actually we just need a searchable list for this "Quick" UI. 
-    // A flat list with paths is easiest to search.
     const flat = bmManager.flatten(tree);
     allFolders = flat.filter(item => {
-        // Only folders, exclude root if needed (though API might return root)
-        // flatten checks for !url usually.
         return !item.url && item.id !== '0';
     });
 
@@ -62,17 +57,14 @@ function renderFolders(folders) {
         const div = document.createElement('div');
         div.className = 'folder-node';
         div.dataset.id = f.id;
-        div.dataset.path = f.path.toLowerCase(); // For search
+        div.dataset.path = f.path.toLowerCase();
 
         const icon = document.createElement('span');
         icon.className = 'folder-icon';
         icon.textContent = '📂';
 
         const name = document.createElement('span');
-        name.textContent = f.path; // Or just leaf name? Path is better for context.
-        // Let's use simplified display: 
-        // If path is long, maybe show "Name (Parent/Grandparent)"?
-        // For now, full path is fine.
+        name.textContent = f.path;
 
         div.appendChild(icon);
         div.appendChild(name);

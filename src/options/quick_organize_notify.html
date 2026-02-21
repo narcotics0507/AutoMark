@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AutoMark</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
         * {
             box-sizing: border-box;
         }
@@ -13,38 +15,47 @@
         body {
             margin: 0;
             padding: 0;
-            /* Remove body padding, move to container */
-            background: #fff;
-            font-family: 'Segoe UI', sans-serif;
+            background: #f5f5f7;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
             height: 100vh;
             text-align: center;
             overflow: hidden;
+            -webkit-font-smoothing: antialiased;
         }
 
-        /* Success View & Folder View Container */
+        /* Timer Bar */
+        .timer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 3px;
+            background: #0071e3;
+            width: 100%;
+            transition: width 5s linear;
+            border-radius: 0 2px 2px 0;
+        }
+
+        /* View Container */
         .view-container {
             width: 100%;
             height: 100%;
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 12px 15px;
-            /* Internal padding */
+            padding: 16px 20px;
             overflow-y: auto;
-            /* Allow internal scrolling if needed */
         }
 
-        /* Hide scrollbar for Chrome */
         .view-container::-webkit-scrollbar {
-            width: 6px;
+            width: 4px;
         }
 
         .view-container::-webkit-scrollbar-thumb {
-            background-color: #ccc;
-            border-radius: 3px;
+            background-color: rgba(0, 0, 0, 0.12);
+            border-radius: 2px;
         }
 
         #folder-view {
@@ -52,60 +63,66 @@
         }
 
         .message {
-            font-size: 0.9rem;
-            color: #666;
-            margin-bottom: 5px;
+            font-size: 14px;
+            color: #86868b;
+            margin-bottom: 6px;
             flex-shrink: 0;
+            font-weight: 500;
         }
 
         .path {
-            font-weight: bold;
-            color: #4CAF50;
-            font-size: 1rem;
-            margin-bottom: 8px;
+            font-weight: 600;
+            color: #0071e3;
+            font-size: 16px;
+            margin-bottom: 10px;
             word-break: break-all;
-            line-height: 1.3;
-            max-height: 50px;
+            line-height: 1.4;
+            max-height: 52px;
             overflow: hidden;
             text-overflow: ellipsis;
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             flex-shrink: 0;
+            letter-spacing: -0.2px;
         }
 
         /* Title Input */
         .title-section {
             width: 100%;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
             text-align: left;
             flex-shrink: 0;
         }
 
         input[type="text"] {
             width: 100%;
-            padding: 6px 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 0.9rem;
+            padding: 10px 12px;
+            border: 1px solid #d2d2d7;
+            border-radius: 8px;
+            font-size: 14px;
             font-family: inherit;
-            transition: border-color 0.2s;
+            background: #ffffff;
+            color: #1d1d1f;
+            transition: all 0.2s ease;
+            outline: none;
         }
 
         input[type="text"]:focus {
-            outline: none;
-            border-color: #2196F3;
+            border-color: #0071e3;
+            box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.08);
         }
 
-        /* Suggestion */
+        /* AI Suggestion */
         #ai-suggestion {
-            margin-top: 6px;
-            font-size: 0.85rem;
-            color: #4CAF50;
+            margin-top: 8px;
+            font-size: 13px;
+            color: #34c759;
             cursor: pointer;
             display: none;
             text-align: left;
             padding-left: 2px;
+            font-weight: 500;
         }
 
         #ai-suggestion:hover {
@@ -113,69 +130,76 @@
         }
 
         .reason {
-            font-size: 0.8rem;
-            color: #999;
-            font-style: italic;
+            font-size: 13px;
+            color: #aeaeb2;
+            font-style: normal;
             margin-bottom: 20px;
             width: 100%;
             text-align: left;
             padding-left: 2px;
+            line-height: 1.4;
         }
 
-        /* Access Buttons */
+        /* Buttons */
         .actions {
             display: flex;
-            gap: 10px;
+            gap: 8px;
             width: 100%;
             margin-top: auto;
-            /* Push to bottom */
             flex-shrink: 0;
         }
 
         button {
-            padding: 8px 0;
-            border-radius: 4px;
+            padding: 10px 0;
+            border-radius: 8px;
             border: none;
             cursor: pointer;
-            font-size: 0.9rem;
+            font-size: 14px;
             flex: 1;
-            font-weight: 500;
-            transition: background-color 0.2s;
+            font-weight: 600;
+            font-family: inherit;
+            transition: all 0.2s ease;
+            letter-spacing: -0.1px;
+        }
+
+        button:active {
+            transform: scale(0.97);
         }
 
         .btn-undo {
-            background: #f5f5f5;
-            color: #555;
-            border: 1px solid #e0e0e0;
+            background: #ffffff;
+            color: #86868b;
+            border: 1px solid #d2d2d7;
         }
 
         .btn-undo:hover {
-            background: #e0e0e0;
+            background: #f0f0f2;
         }
 
         .btn-change {
-            background: #FF9800;
-            color: white;
+            background: #ffffff;
+            color: #1d1d1f;
+            border: 1px solid #d2d2d7;
         }
 
         .btn-change:hover {
-            background: #F57C00;
+            background: #f0f0f2;
         }
 
         .btn-confirm {
-            background: #2196F3;
+            background: #0071e3;
             color: white;
         }
 
         .btn-confirm:hover {
-            background: #1976D2;
+            background: #0077ed;
         }
 
-        /* Folder Tree Styles */
+        /* Folder Tree */
         #folder-tree {
             width: 100%;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            border: 1px solid #d2d2d7;
+            border-radius: 10px;
             margin-bottom: 10px;
             background: white;
             flex-grow: 1;
@@ -185,14 +209,14 @@
         }
 
         .tree-item {
-            padding: 6px 8px;
+            padding: 8px 10px;
             cursor: pointer;
             display: flex;
             align-items: center;
-            font-size: 0.9rem;
-            color: #333;
-            border-bottom: 1px solid #f0f0f0;
-            transition: background 0.1s;
+            font-size: 14px;
+            color: #1d1d1f;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+            transition: background 0.15s ease;
         }
 
         .tree-item:last-child {
@@ -200,19 +224,18 @@
         }
 
         .tree-item:hover {
-            background-color: #f5f5f5;
+            background-color: rgba(0, 113, 227, 0.04);
         }
 
         .tree-item.selected {
-            background-color: #e3f2fd;
-            /* Light Blue */
-            color: #1976D2;
+            background-color: #0071e3;
+            color: #ffffff;
             font-weight: 500;
         }
 
         .tree-icon {
-            margin-right: 6px;
-            font-size: 1rem;
+            margin-right: 8px;
+            font-size: 14px;
             line-height: 1;
         }
 
@@ -220,16 +243,6 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-        }
-
-        .timer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            height: 3px;
-            background: #4CAF50;
-            width: 100%;
-            transition: width 5s linear;
         }
     </style>
 </head>
@@ -253,18 +266,15 @@
         <div class="reason" id="ai-reason"></div>
 
         <div class="actions">
-            <!-- Undo: 20% width -->
-            <button id="btnUndo" class="btn-undo" style="flex: 0.3;">↩️ 撤销</button>
-            <!-- Change: 35% width -->
-            <button id="btnChange" class="btn-change" style="flex: 0.35;">📂 修改目录</button>
-            <!-- Confirm: 45% width -->
-            <button id="btnConfirm" class="btn-confirm" style="flex: 0.35;">✅ 确认</button>
+            <button id="btnUndo" class="btn-undo" style="flex: 0.3;">撤销</button>
+            <button id="btnChange" class="btn-change" style="flex: 0.35;">修改目录</button>
+            <button id="btnConfirm" class="btn-confirm" style="flex: 0.35;">确认</button>
         </div>
     </div>
 
     <!-- Folder Selection View -->
     <div id="folder-view" class="view-container">
-        <div class="message" style="margin-bottom: 10px; font-weight: 500;">请选择新的目标文件夹:</div>
+        <div class="message" style="margin-bottom: 10px; font-weight: 600;">请选择新的目标文件夹:</div>
         <div id="folder-tree"></div>
         <div class="actions">
             <button id="btnCancelFolder" class="btn-undo">取消</button>

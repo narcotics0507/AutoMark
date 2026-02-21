@@ -5,6 +5,16 @@ import { Logger } from '../lib/logger.js';
 console.log('[Background] Service Worker Starting...');
 Logger.log('Service Worker Initialized');
 
+// Force refresh toolbar icon (bypass Chrome icon cache)
+chrome.action.setIcon({
+    path: {
+        "16": "src/assets/icons/icon16.png",
+        "32": "src/assets/icons/icon32.png",
+        "48": "src/assets/icons/icon48.png",
+        "128": "src/assets/icons/icon128.png"
+    }
+});
+
 // Listen for new bookmarks
 // Undo/Correction Data Store
 const undoMap = new Map(); // <notificationId, { bookmarkId, originalParentId, movedToId }>
