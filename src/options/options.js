@@ -598,11 +598,89 @@ function renderReview(plan) {
         null,
         true, // Enable Pagination
         (groupName, items, updateCounts) => {
-            // ... existing duplicate logic ...
-            // (We need to keep the duplicate logic intact, so I will just wrap the end of renderReview to update UI text)
-            // Actually, replace_file_content needs exact match. 
-            // I will append the UI update logic at the END of renderReview function.
-            return null;
+            // Pre-process: Group by Keep ID (Equivalence Sets)
+            const sets = {};
+            items.forEach(item => {
+                const kId = item.keep_id;
+                if (!sets[kId]) {
+                    sets[kId] = {
+                        keepItem: {
+                            id: item.keep_id,
+                            title: item.keep_title,
+                            url: item.keep_url,
+                            _ignored: true // default kept
+                        },
+                        duplicates: []
+                    };
+                }
+                sets[kId].duplicates.push(item);
+            });
+
+            const container = document.createElement('div');
+            container.className = 'dup-group-container';
+
+            const header = document.createElement('div');
+            header.className = 'dup-header';
+            header.textContent = groupName;
+            container.appendChild(header);
+
+            Object.values(sets).forEach(set => {
+                const setContainer = document.createElement('div');
+                setContainer.className = 'dup-set';
+
+                // Merge all items (Keep + Duplicates)
+                const allItems = [set.keepItem, ...set.duplicates];
+
+                // Render Radio Group
+                allItems.forEach(item => {
+                    const row = document.createElement('div');
+                    row.className = 'dup-radio-row';
+                    // Highlight if kept
+                    if (item._ignored) row.classList.add('row-kept');
+
+                    const radio = document.createElement('input');
+                    radio.type = 'radio';
+                    radio.name = `dup-set-${set.keepItem.id}`; // unique group name
+                    radio.checked = item._ignored;
+
+                    radio.onchange = () => {
+                        // When this is selected:
+                        // 1. Mark this as ignored (Keep)
+                        item._ignored = true;
+                        // 2. Mark all others in this set as NOT ignored (Delete)
+                        allItems.forEach(other => {
+                            if (other !== item) other._ignored = false;
+                        });
+
+                        // 3. Update UI classes
+                        setContainer.querySelectorAll('.dup-radio-row').forEach(r => r.classList.remove('row-kept'));
+                        row.classList.add('row-kept');
+
+                        updateCounts();
+                    };
+
+                    const label = document.createElement('div');
+                    label.className = 'dup-radio-label';
+                    label.innerHTML = `
+                        <div class="dup-title">${item.title}</div>
+                        <div class="dup-url">${item.url}</div>
+                        ${item === set.keepItem && item.id === set.keepItem.id ? '<span class="badge badge-keep">原保留项</span>' : ''}
+                    `;
+
+                    // Allow clicking row to select
+                    row.onclick = (e) => {
+                        if (e.target !== radio) radio.click();
+                    };
+
+                    row.appendChild(radio);
+                    row.appendChild(label);
+                    setContainer.appendChild(row);
+                });
+
+                container.appendChild(setContainer);
+            });
+
+            return container;
         }
     );
 
