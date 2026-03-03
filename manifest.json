@@ -8,6 +8,9 @@
     "storage",
     "downloads"
   ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
   "icons": {
     "16": "src/assets/icons/icon16.png",
     "32": "src/assets/icons/icon32.png",

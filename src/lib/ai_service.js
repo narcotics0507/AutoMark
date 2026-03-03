@@ -183,39 +183,79 @@ IMPORTANT:
     }
 
     async callOpenAICompatible(prompt) {
-        // Helper to perform the fetch
         const doFetch = async (url) => {
-            return await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${this.config.apiKey}`
-                },
-                body: JSON.stringify({
-                    model: this.config.modelName || 'gpt-4o',
-                    messages: [
-                        { role: 'system', content: 'You are a helpful assistant that outputs strict JSON.' },
-                        { role: 'user', content: prompt }
-                    ],
-                    temperature: 0.2,
-                    response_format: { type: "json_object" }
-                })
-            });
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 12000); // 12 seconds timeout
+
+            try {
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${this.config.apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: this.config.modelName || 'gpt-4o',
+                        messages: [
+                            { role: 'system', content: 'You are a helpful assistant that outputs strict JSON.' },
+                            { role: 'user', content: prompt }
+                        ],
+                        temperature: 0.2,
+                        response_format: { type: "json_object" }
+                    }),
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+                return res;
+            } catch (err) {
+                clearTimeout(timeoutId);
+                throw err;
+            }
         };
 
         let currentUrl = this.config.apiEndpoint;
-        let response;
+        // let response; (removed due to shadowing)
 
-        try {
-            response = await doFetch(currentUrl);
-        } catch (netError) {
-            throw new Error(`Network Error: ${netError.message}. Check your URL.`);
+        let lastError = null;
+        let response = null;
+        const maxRetries = 2; // Maximum 2 retries (Total 3 attempts)
+
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+            try {
+                if (attempt > 0) {
+                    console.warn(`[AutoMark API] Retrying attempt ${attempt}/${maxRetries} after error: ${lastError.message}`);
+                    await new Promise(resolve => setTimeout(resolve, 1500 * attempt)); // Exponential backoff: 1.5s, 3s
+                }
+
+                response = await doFetch(currentUrl);
+
+                // If the response is successful or it's a non-retryable error (e.g., 401 Unauthorized), break out of the loop
+                if (response.ok || (response.status >= 400 && response.status < 500 && response.status !== 429)) {
+                    break;
+                }
+
+                // If it's a 5xx Server Error or 429 Too Many Requests, throw error to trigger the retry mechanism
+                if (response.status === 429 || response.status >= 500) {
+                    throw new Error(`Server returned status ${response.status}`);
+                }
+
+            } catch (netError) {
+                lastError = netError;
+                if (netError.name === 'AbortError') {
+                    console.warn(`[AutoMark API] Request timed out. (Attempt ${attempt + 1})`);
+                }
+
+                if (attempt === maxRetries) {
+                    const errorMsg = netError.name === 'AbortError' ? 'Connection timed out' : netError.message;
+                    throw new Error(`Network Error: ${errorMsg}. Check your URL or server status.`);
+                }
+            }
         }
 
         // Check for HTML response or 404 (common if base URL is used)
-        const contentType = response.headers.get('content-type');
+        const contentType = response?.headers?.get('content-type');
         const isHtml = contentType && contentType.includes('text/html');
-        const isNotFound = response.status === 404;
+        const isNotFound = response?.status === 404;
 
         if ((isHtml || isNotFound) && !currentUrl.includes('/chat/completions')) {
             console.log('Detected potential base URL issue. Attempting auto-correction...');
@@ -274,22 +314,72 @@ IMPORTANT:
 
     async callGemini(prompt) {
         const url = `${this.config.apiEndpoint}?key=${this.config.apiKey}`;
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                contents: [{
-                    parts: [{
-                        text: prompt
-                    }]
-                }],
-                generationConfig: {
-                    responseMimeType: "application/json"
+
+        const doGeminiFetch = async () => {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 12000); // 12 seconds timeout
+
+            try {
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{
+                                text: prompt
+                            }]
+                        }],
+                        generationConfig: {
+                            responseMimeType: "application/json"
+                        }
+                    }),
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+                return res;
+            } catch (err) {
+                clearTimeout(timeoutId);
+                throw err;
+            }
+        };
+
+        let lastError = null;
+        let response = null;
+        const maxRetries = 2; // Maximum 2 retries (Total 3 attempts)
+
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+            try {
+                if (attempt > 0) {
+                    console.warn(`[AutoMark Gemini API] Retrying attempt ${attempt}/${maxRetries} after error: ${lastError.message}`);
+                    await new Promise(resolve => setTimeout(resolve, 1500 * attempt)); // Exponential backoff: 1.5s, 3s
                 }
-            })
-        });
+
+                response = await doGeminiFetch();
+
+                // If the response is successful or it's a non-retryable error (e.g., 401 Unauthorized), break out of the loop
+                if (response.ok || (response.status >= 400 && response.status < 500 && response.status !== 429)) {
+                    break;
+                }
+
+                // If it's a 5xx Server Error or 429 Too Many Requests, throw error to trigger the retry mechanism
+                if (response.status === 429 || response.status >= 500) {
+                    throw new Error(`Server returned status ${response.status}`);
+                }
+
+            } catch (netError) {
+                lastError = netError;
+                if (netError.name === 'AbortError') {
+                    console.warn(`[AutoMark Gemini API] Request timed out. (Attempt ${attempt + 1})`);
+                }
+
+                if (attempt === maxRetries) {
+                    const errorMsg = netError.name === 'AbortError' ? 'Connection timed out' : netError.message;
+                    throw new Error(`Gemini Network Error: ${errorMsg}. Check your URL or network connectivity.`);
+                }
+            }
+        }
 
         if (!response.ok) {
             const err = await response.text();
