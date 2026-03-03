@@ -10,11 +10,16 @@
   <img src="store-assets/promo_large_1400x560.png" width="100%" alt="AutoMark Promotional Banner">
 </p>
 
-<p align="center">
-  <img src="store-assets/screenshot_main.png" width="45%" alt="Main Interface">
-  &nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="store-assets/screenshot_review.png" width="45%" alt="Review Changes Interface">
-</p>
+<table align="center" style="border:none; border-collapse:collapse; background:transparent;">
+  <tr style="border:none; background:transparent;">
+    <td align="center" style="border:none; background:transparent; padding: 10px;">
+      <img src="store-assets/screenshot_main.png" alt="Main Interface" width="100%">
+    </td>
+    <td align="center" style="border:none; background:transparent; padding: 10px;">
+      <img src="store-assets/screenshot_review.png" alt="Review Changes Interface" width="100%">
+    </td>
+  </tr>
+</table>
 
 AutoMark 是一款支持 Chromium 浏览器（Chrome, Edge, Brave 等）的扩展。它利用大语言模型（OpenAI GPT-4, Google Gemini, DeepSeek 等）来理解您的书签内容，帮助您自动分类、重命名和清理，让书签栏保持井井有条。
 
