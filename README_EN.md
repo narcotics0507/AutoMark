@@ -6,6 +6,18 @@
 
 [![Chrome Web Store](https://img.shields.io/badge/Chrome_Web_Store-Available-blue?logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/automark/fidibpojnjiakkgfhbpfekibdgdgafce?hl=en&utm_source=ext_sidebar)
 
+<p align="center">
+  <img src="store-assets/promo_large_1400x560.png" width="100%" alt="AutoMark Promotional Banner">
+</p>
+
+AutoMark is a powerful browser extension for Chromium (Chrome, Edge, Brave, etc.) that uses AI models (OpenAI GPT-4, Google Gemini, DeepSeek, etc.) to intelligently analyze, organize, and clean up your browser bookmarks.
+
+<p align="center">
+  <img src="store-assets/screenshot_main.png" width="45%" alt="Main Interface">
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="store-assets/screenshot_review.png" width="45%" alt="Review Changes Interface">
+</p>
+
 AutoMark is a powerful browser extension for Chromium (Chrome, Edge, Brave, etc.) that uses AI models (OpenAI GPT-4, Google Gemini, DeepSeek, etc.) to intelligently analyze, organize, and clean up your browser bookmarks.
 
 ## ✨ Core Features
@@ -61,6 +73,14 @@ We provide a set of tools to keep your bookmark library healthy:
 ## 🛠️ Troubleshooting
 *   **Operation Feedback**: During organization, the console displays real-time actions (e.g., how many links were archived).
 *   **Detailed Logs**: If you encounter unknown errors, check the **"System Logs"** area at the bottom left of the settings page. It records detailed API communication and network status for easier debugging.
+
+---
+
+## 📈 Trends & Growth
+
+If AutoMark has helped you out, whether by organizing a mountain of bookmarks or saving you time, please give this project a **Star ⭐️**! Your support is my biggest motivation!
+
+[![Star History Chart](https://api.star-history.com/svg?repos=narcotics0507/AutoMark&type=Date)](https://star-history.com/#narcotics0507/AutoMark&Date)
 
 ---
 
