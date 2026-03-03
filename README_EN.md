@@ -10,13 +10,13 @@
   <img src="store-assets/promo_large_1400x560.png" width="100%" alt="AutoMark Promotional Banner">
 </p>
 
-AutoMark is a powerful browser extension for Chromium (Chrome, Edge, Brave, etc.) that uses AI models (OpenAI GPT-4, Google Gemini, DeepSeek, etc.) to intelligently analyze, organize, and clean up your browser bookmarks.
-
 <p align="center">
   <img src="store-assets/screenshot_main.png" width="45%" alt="Main Interface">
   &nbsp;&nbsp;&nbsp;&nbsp;
   <img src="store-assets/screenshot_review.png" width="45%" alt="Review Changes Interface">
 </p>
+
+AutoMark is a powerful browser extension for Chromium (Chrome, Edge, Brave, etc.) that uses AI models (OpenAI GPT-4, Google Gemini, DeepSeek, etc.) to intelligently analyze, organize, and clean up your browser bookmarks.
 ## ✨ Core Features
 
 > [!IMPORTANT]
