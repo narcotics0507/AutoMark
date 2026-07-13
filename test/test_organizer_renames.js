@@ -49,4 +49,83 @@ assert.deepEqual(calls, [
     'rename:1:React 官方文档'
 ]);
 
+const emptyPlan = () => ({
+    folders_to_create: [],
+    folders_to_rename: [],
+    bookmarks_to_move: [],
+    bookmarks_to_rename: [],
+    archive: [],
+    dead_links: [],
+    duplicates: []
+});
+
+const runCancelledFolderSetup = async (section, item) => {
+    const setupCalls = [];
+    const cancelledOrganizer = new Organizer({
+        onLog: () => {},
+        onStatus: () => {},
+        onProgress: () => {}
+    });
+    cancelledOrganizer.bm = {
+        ensureFolder: async path => {
+            setupCalls.push(`folder:${path}`);
+            return 'target';
+        },
+        moveBookmark: async () => setupCalls.push('move'),
+        renameBookmark: async () => {},
+        removeBookmark: async () => {}
+    };
+    cancelledOrganizer.isCancelled = true;
+
+    let error;
+    try {
+        await cancelledOrganizer.executePlanLogic({ ...emptyPlan(), [section]: [item] });
+    } catch (caught) {
+        error = caught;
+    }
+
+    return { error, setupCalls };
+};
+
+const cancelledSetups = await Promise.all([
+    runCancelledFolderSetup('archive', { bookmark_id: 'archive-1', title: 'Archive me' }),
+    runCancelledFolderSetup('dead_links', { bookmark_id: 'dead-1', url: 'https://dead.example' })
+]);
+for (const { error, setupCalls } of cancelledSetups) {
+    assert.match(error?.message || '', /操作已取消/);
+    assert.deepEqual(setupCalls, [], 'cancellation must be checked before creating category folders');
+}
+
+const resilienceCalls = [];
+const resilienceLogs = [];
+const resilientOrganizer = new Organizer({
+    onLog: message => resilienceLogs.push(message),
+    onStatus: () => {},
+    onProgress: () => {}
+});
+resilientOrganizer.bm = {
+    ensureFolder: async path => {
+        resilienceCalls.push(`folder:${path}`);
+        throw new Error(`simulated ${path} failure`);
+    },
+    moveBookmark: async id => resilienceCalls.push(`move:${id}`),
+    renameBookmark: async () => {},
+    removeBookmark: async id => resilienceCalls.push(`remove:${id}`)
+};
+
+await resilientOrganizer.executePlanLogic({
+    ...emptyPlan(),
+    archive: [{ bookmark_id: 'archive-1', title: 'Archive me' }],
+    dead_links: [{ bookmark_id: 'dead-1', url: 'https://dead.example' }],
+    duplicates: [{ bookmark_id: 'duplicate-1', title: 'Duplicate' }]
+});
+
+assert.deepEqual(resilienceCalls, [
+    'folder:Archive',
+    'folder:失效链接归档',
+    'remove:duplicate-1'
+]);
+assert(resilienceLogs.some(message => message.includes('simulated Archive failure')));
+assert(resilienceLogs.some(message => message.includes('simulated 失效链接归档 failure')));
+
 console.log('Organizer rename tests passed');

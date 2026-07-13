@@ -500,36 +500,56 @@ export class Organizer {
 
         // 4.4 Archive
         if (plan.archive && plan.archive.length > 0) {
+            if (this.isCancelled) throw new Error('操作已取消');
             this.onLog(`[archive] 建议归档/删除 ${plan.archive.length} 个书签`);
-            const archiveId = await this.bm.ensureFolder('Archive', '1');
+            let archiveId = null;
+            try {
+                archiveId = await this.bm.ensureFolder('Archive', '1');
+            } catch (e) {
+                this.onLog(`  ! 创建归档文件夹失败: ${e.message}`);
+            }
 
-            for (const item of plan.archive) {
-                if (this.isCancelled) throw new Error('操作已取消');
-                try {
-                    await this.bm.moveBookmark(item.bookmark_id, archiveId);
-                    this.onLog(`  x 归档: ${item.title}`);
-                } catch (e) {
-                    this.onLog(`  ! 归档失败 ${item.bookmark_id}: ${e.message}`);
+            if (archiveId) {
+                for (const item of plan.archive) {
+                    if (this.isCancelled) throw new Error('操作已取消');
+                    try {
+                        await this.bm.moveBookmark(item.bookmark_id, archiveId);
+                        this.onLog(`  x 归档: ${item.title}`);
+                    } catch (e) {
+                        this.onLog(`  ! 归档失败 ${item.bookmark_id}: ${e.message}`);
+                    }
+                    updateProgress(`归档: ${item.title}`);
                 }
-                updateProgress(`归档: ${item.title}`);
+            } else {
+                for (const item of plan.archive) updateProgress(`跳过归档: ${item.title}`);
             }
         }
 
         // 4.5 Dead Links (MOVED to Archive Folder)
         if (plan.dead_links && plan.dead_links.length > 0) {
+            if (this.isCancelled) throw new Error('操作已取消');
             this.onLog(`[dead] 正在归档 ${plan.dead_links.length} 个失效链接...`);
-            const deadLinksId = await this.bm.ensureFolder('失效链接归档', '1');
+            let deadLinksId = null;
+            try {
+                deadLinksId = await this.bm.ensureFolder('失效链接归档', '1');
+            } catch (e) {
+                this.onLog(`  ! 创建失效链接归档文件夹失败: ${e.message}`);
+            }
 
-            for (const item of plan.dead_links) {
-                if (this.isCancelled) throw new Error('操作已取消');
-                try {
-                    // Move to Archive instead of Remove
-                    await this.bm.moveBookmark(item.bookmark_id, deadLinksId);
-                    this.onLog(`  x 已归档: ${item.url}`);
-                } catch (e) {
-                    this.onLog(`  ! 归档失效链接失败 ${item.bookmark_id}: ${e.message}`);
+            if (deadLinksId) {
+                for (const item of plan.dead_links) {
+                    if (this.isCancelled) throw new Error('操作已取消');
+                    try {
+                        // Move to Archive instead of Remove
+                        await this.bm.moveBookmark(item.bookmark_id, deadLinksId);
+                        this.onLog(`  x 已归档: ${item.url}`);
+                    } catch (e) {
+                        this.onLog(`  ! 归档失效链接失败 ${item.bookmark_id}: ${e.message}`);
+                    }
+                    updateProgress(`归档失效链接...`);
                 }
-                updateProgress(`归档失效链接...`);
+            } else {
+                for (const item of plan.dead_links) updateProgress('跳过失效链接归档...');
             }
         }
 
