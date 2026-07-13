@@ -23,6 +23,13 @@ async function runTest() {
     const plan = await organizer.analyze(['1']);
     console.log('Generated Plan:', JSON.stringify(plan, null, 2));
 
+    if (plan.bookmarks_to_rename[0]?.new_title !== 'React 官方文档') {
+        throw new Error('Expected an independent bookmark title suggestion');
+    }
+    if (!global.__lastAIUserPrompt.includes('Prefer official documentation.')) {
+        throw new Error('Expected custom instructions in the batch prompt');
+    }
+
     // 4. Verify Plan Content (Mock AI returns static plan)
     if (plan.folders_to_create[0].path === '前端开发') {
         console.log('✅ Plan contains expected Chinese folder');

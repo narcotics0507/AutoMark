@@ -88,6 +88,7 @@ export class Organizer {
             folders_to_create: [],
             folders_to_rename: [],
             bookmarks_to_move: [],
+            bookmarks_to_rename: [],
             archive: [],
             dead_links: [],
             duplicates: []
@@ -121,11 +122,19 @@ export class Organizer {
         if (!skipAI) {
             this.onStatus('analyzing', '正在思考', 'AI 正在分批分析您的书签...');
 
-            const config = await chrome.storage.sync.get(['apiProvider', 'apiEndpoint', 'apiKey', 'modelName', 'targetLanguage']);
+            const config = await chrome.storage.sync.get([
+                'apiProvider',
+                'apiEndpoint',
+                'apiKey',
+                'modelName',
+                'targetLanguage',
+                'organizationStyle',
+                'customInstructions'
+            ]);
             if (!config.apiKey) throw new Error('API Key 未配置');
 
-            if (this.config.targetLanguage) {
-                config.targetLanguage = this.config.targetLanguage;
+            for (const key of ['targetLanguage', 'organizationStyle', 'customInstructions']) {
+                if (this.config[key] !== undefined) config[key] = this.config[key];
             }
 
             const ai = new AIService(config);
@@ -167,6 +176,8 @@ export class Organizer {
             this.onLog('跳过 AI 分析步骤。', 'system');
         }
 
+        masterPlan.bookmarks_to_rename = this.collectBookmarkRenames(masterPlan.bookmarks_to_move, flatList);
+
         this.onProgress(100, '分析完成，请审查计划');
         this.onStatus('review', '等待审查', '请确认以下变更计划');
 
@@ -191,12 +202,33 @@ export class Organizer {
         }
 
         hydrate(masterPlan.bookmarks_to_move);
+        hydrate(masterPlan.bookmarks_to_rename, 'rename');
         hydrate(masterPlan.archive);
         hydrate(masterPlan.dead_links);
         hydrate(masterPlan.duplicates);
         hydrate(masterPlan.folders_to_rename, 'rename');
 
         return masterPlan;
+    }
+
+    collectBookmarkRenames(bookmarksToMove = [], bookmarks = []) {
+        const bookmarksById = new Map(bookmarks.map(item => [item.id, item]));
+        const renamesById = new Map();
+
+        for (const move of bookmarksToMove) {
+            const bookmark = bookmarksById.get(move.bookmark_id);
+            const newTitle = String(move.suggested_title || '').trim();
+            if (!bookmark || !newTitle || newTitle === bookmark.title || renamesById.has(bookmark.id)) continue;
+
+            renamesById.set(bookmark.id, {
+                bookmark_id: bookmark.id,
+                old_title: bookmark.title,
+                new_title: newTitle,
+                path: bookmark.path
+            });
+        }
+
+        return Array.from(renamesById.values());
     }
 
     async checkDuplicates(bookmarks) {
@@ -392,7 +424,13 @@ export class Organizer {
 
     async executePlanLogic(plan) {
         const gets = (arr) => arr ? arr.length : 0;
-        const totalOps = gets(plan.folders_to_create) + gets(plan.folders_to_rename) + gets(plan.bookmarks_to_move) + gets(plan.archive) + gets(plan.dead_links) + gets(plan.duplicates);
+        const totalOps = gets(plan.folders_to_create)
+            + gets(plan.folders_to_rename)
+            + gets(plan.bookmarks_to_move)
+            + gets(plan.bookmarks_to_rename)
+            + gets(plan.archive)
+            + gets(plan.dead_links)
+            + gets(plan.duplicates);
         let completedOps = 0;
 
         const updateProgress = (msg) => {
@@ -443,6 +481,20 @@ export class Organizer {
                     this.onLog(`  ! 移动失败 ID ${move.bookmark_id}: ${e.message}`);
                 }
                 updateProgress('移动书签...');
+            }
+        }
+
+        if (plan.bookmarks_to_rename && plan.bookmarks_to_rename.length > 0) {
+            this.onLog(`[rename] 需要优化 ${plan.bookmarks_to_rename.length} 个书签标题`);
+            for (const item of plan.bookmarks_to_rename) {
+                if (this.isCancelled) throw new Error('操作已取消');
+                try {
+                    await this.bm.renameBookmark(item.bookmark_id, item.new_title);
+                    this.onLog(`  > 优化标题: ${item.old_title || item.bookmark_id} -> ${item.new_title}`);
+                } catch (e) {
+                    this.onLog(`  ! 优化标题失败 ID ${item.bookmark_id}: ${e.message}`);
+                }
+                updateProgress(`优化标题: ${item.new_title}`);
             }
         }
 

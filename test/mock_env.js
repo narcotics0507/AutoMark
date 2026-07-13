@@ -77,7 +77,9 @@ global.chrome = {
             get: (keys) => Promise.resolve({
                 apiKey: 'mock-key',
                 apiProvider: 'custom',
-                targetLanguage: 'zh-CN'
+                targetLanguage: 'zh-CN',
+                organizationStyle: 'balanced',
+                customInstructions: 'Prefer official documentation.'
             }) // Simplified to return promise immediately or accept logic
         }
     }
@@ -86,6 +88,7 @@ global.chrome = {
 // Mock fetch
 global.fetch = async (url, options) => {
     console.log('[Mock] fetch', url);
+    global.__lastAIUserPrompt = JSON.parse(options.body).messages.at(-1).content;
     return {
         ok: true,
         headers: {
@@ -96,7 +99,7 @@ global.fetch = async (url, options) => {
                 message: {
                     content: JSON.stringify({
                         folders_to_create: [{ path: '前端开发', parent_path: 'Bookmarks Bar' }],
-                        bookmarks_to_move: [{ bookmark_id: '12', target_folder_path: '前端开发' }]
+                        bookmarks_to_move: [{ bookmark_id: '12', target_folder_path: '前端开发', suggested_title: 'React 官方文档' }]
                     })
                 }
             }]
