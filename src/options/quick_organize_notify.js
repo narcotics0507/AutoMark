@@ -1,16 +1,5 @@
 // Standalone script - No imports
 
-// --- Helpers ---
-const safeDecode = (str) => {
-    if (!str) return '';
-    try {
-        return decodeURIComponent(str);
-    } catch (e) {
-        console.error('URI Decode Error:', e);
-        return str;
-    }
-};
-
 // Flatten bookmark tree with pretty prefixes
 function flattenFolders(nodes, depth = 0, output = []) {
     for (let i = 0; i < nodes.length; i++) {
@@ -83,15 +72,15 @@ function renderTree(folders, containerId) {
 const params = new URLSearchParams(window.location.search);
 const bookmarkId = params.get('id');
 // targetPath/targetId might change if user modifies it
-let targetPath = safeDecode(params.get('path'));
+let targetPath = params.get('path') || '';
 let targetId = params.get('targetId');
 
-const msg = safeDecode(params.get('msg')); // Original Title
-const suggestion = safeDecode(params.get('suggestion')); // AI Suggestion
-const reason = safeDecode(params.get('reason') || 'AI Decision');
-const errorMsg = safeDecode(params.get('error'));
+const msg = params.get('msg') || ''; // Original Title
+const suggestion = params.get('suggestion') || ''; // AI Suggestion
+const reason = params.get('reason') || 'AI Decision';
+const errorMsg = params.get('error') || '';
 const oldParentId = params.get('old');
-const warningMsg = safeDecode(params.get('warning'));
+const warningMsg = params.get('warning') || '';
 const isSamePath = params.get('same') === 'true';
 
 let autoCloseTimer = null;

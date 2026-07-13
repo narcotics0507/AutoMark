@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import vm from 'node:vm';
 import { buildQuickOrganizeNotificationUrl } from '../src/lib/notification_url.js';
 
 const url = buildQuickOrganizeNotificationUrl({
@@ -34,5 +36,66 @@ const longParams = new URLSearchParams(longTitleUrl.slice(longTitleUrl.indexOf('
 assert.equal(longParams.get('msg').length, 103);
 assert.equal(longParams.get('reason'), 'AI Decision');
 assert.equal(longParams.has('suggestion'), false);
+
+const literalPercentValues = {
+    targetPath: 'Specs/%2F-literal',
+    bookmarkTitle: 'Percent %2F title',
+    suggestedTitle: 'Keep %2F exactly',
+    reason: 'The source contains %2F literally'
+};
+const literalPercentUrl = buildQuickOrganizeNotificationUrl({
+    bookmarkId: '8',
+    ...literalPercentValues,
+    oldParentId: '1',
+    isSamePath: false,
+    targetId: '3'
+});
+
+const elements = new Map();
+const element = id => {
+    if (!elements.has(id)) {
+        elements.set(id, {
+            id,
+            style: {},
+            classList: { add() {}, remove() {} },
+            textContent: '',
+            value: '',
+            onclick: null
+        });
+    }
+    return elements.get(id);
+};
+const message = element('message');
+const document = {
+    body: {
+        classList: { add() {} },
+        addEventListener() {}
+    },
+    getElementById: element,
+    querySelector(selector) {
+        return selector === '.message' ? message : null;
+    }
+};
+const notificationScript = readFileSync(
+    new URL('../src/options/quick_organize_notify.js', import.meta.url),
+    'utf8'
+);
+vm.runInNewContext(notificationScript, {
+    URLSearchParams,
+    document,
+    window: {
+        location: { search: literalPercentUrl.slice(literalPercentUrl.indexOf('?')) },
+        close() {}
+    },
+    chrome: { bookmarks: {} },
+    console,
+    setTimeout() { return 1; },
+    clearTimeout() {}
+});
+
+assert.equal(elements.get('target-path').textContent, literalPercentValues.targetPath);
+assert.equal(elements.get('bookmark-title').value, literalPercentValues.bookmarkTitle);
+assert.equal(elements.get('suggestion-text').textContent, literalPercentValues.suggestedTitle);
+assert.equal(elements.get('ai-reason').textContent, `💡 ${literalPercentValues.reason}`);
 
 console.log('Notification URL tests passed');
