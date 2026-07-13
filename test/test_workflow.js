@@ -43,4 +43,7 @@ async function runTest() {
     console.log('✅ Execution completed');
 }
 
-runTest().catch(e => console.error('TEST FAILED:', e.message));
+runTest().catch(e => {
+    console.error('TEST FAILED:', e.message);
+    process.exitCode = 1;
+});
