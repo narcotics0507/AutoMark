@@ -123,4 +123,3 @@ Manual verification in a Chromium browser will cover settings persistence, all t
 - A source summary and verification results.
 - A clean upload ZIP containing the extension files and excluding Git metadata, tests, and local artifacts.
 - A clear notice that the changed extension must be uploaded and submitted again through the Chrome Web Store developer dashboard.
-
