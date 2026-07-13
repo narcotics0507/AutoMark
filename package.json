@@ -5,6 +5,6 @@
     "license": "UNLICENSED",
     "type": "module",
     "scripts": {
-        "test": "node test/test_ai_preferences.js && node test/test_options_preferences.js && node test/test_organizer_renames.js && node test/test_plan_review.js && node test/test_notification_url.js && node test/test_workflow.js && node test/test_deadlink_manual_mode.js && node test/test_duplicates.js && node test/test_normalization.js"
+        "test": "node test/test_ai_preferences.js && node test/test_options_preferences.js && node test/test_organizer_renames.js && node test/test_bookmark_manager_errors.js && node test/test_plan_review.js && node test/test_notification_url.js && node test/test_workflow.js && node test/test_deadlink_manual_mode.js && node test/test_duplicates.js && node test/test_normalization.js"
     }
 }

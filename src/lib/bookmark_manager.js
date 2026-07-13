@@ -1,23 +1,28 @@
 export class BookmarkManager {
     constructor() { }
 
-    /**
-     * Get the entire bookmark tree
-     */
-    async getTree() {
-        return new Promise((resolve) => {
-            chrome.bookmarks.getTree((tree) => {
-                resolve(tree);
+    _callBookmarkApi(registerCallback) {
+        return new Promise((resolve, reject) => {
+            registerCallback((result) => {
+                const lastError = chrome.runtime?.lastError;
+                if (lastError) {
+                    reject(new Error(lastError.message || String(lastError)));
+                    return;
+                }
+                resolve(result);
             });
         });
     }
 
+    /**
+     * Get the entire bookmark tree
+     */
+    async getTree() {
+        return this._callBookmarkApi(callback => chrome.bookmarks.getTree(callback));
+    }
+
     async getSubTree(id) {
-        return new Promise((resolve) => {
-            chrome.bookmarks.getSubTree(id, (results) => {
-                resolve(results);
-            });
-        });
+        return this._callBookmarkApi(callback => chrome.bookmarks.getSubTree(id, callback));
     }
 
 
@@ -75,17 +80,19 @@ export class BookmarkManager {
         let currentParentId = rootId;
 
         for (const part of parts) {
-            const children = await new Promise(resolve => chrome.bookmarks.getChildren(currentParentId, resolve));
+            const children = await this._callBookmarkApi(
+                callback => chrome.bookmarks.getChildren(currentParentId, callback)
+            );
             const existing = children.find(c => c.title === part && !c.url);
 
             if (existing) {
                 currentParentId = existing.id;
             } else {
-                const newFolder = await new Promise(resolve => {
+                const newFolder = await this._callBookmarkApi(callback => {
                     chrome.bookmarks.create({
                         parentId: currentParentId,
                         title: part
-                    }, resolve);
+                    }, callback);
                 });
                 currentParentId = newFolder.id;
             }
@@ -95,20 +102,18 @@ export class BookmarkManager {
 
     async moveBookmark(id, targetParentId) {
         if (!targetParentId) return;
-        return new Promise(resolve => {
-            chrome.bookmarks.move(id, { parentId: targetParentId }, resolve);
-        });
+        return this._callBookmarkApi(
+            callback => chrome.bookmarks.move(id, { parentId: targetParentId }, callback)
+        );
     }
 
     async renameBookmark(id, newTitle) {
-        return new Promise(resolve => {
-            chrome.bookmarks.update(id, { title: newTitle }, resolve);
-        });
+        return this._callBookmarkApi(
+            callback => chrome.bookmarks.update(id, { title: newTitle }, callback)
+        );
     }
 
     async removeBookmark(id) {
-        return new Promise(resolve => {
-            chrome.bookmarks.remove(id, resolve);
-        });
+        return this._callBookmarkApi(callback => chrome.bookmarks.remove(id, callback));
     }
 }

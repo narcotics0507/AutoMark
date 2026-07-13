@@ -372,6 +372,7 @@ export class Organizer {
 
         // Cleanup empty folders (Silent unless changes happen)
         const removedCount = await this.cleanupEmptyFolders();
+        if (this.isCancelled) throw new Error('操作已取消');
         if (removedCount > 0) {
             this.onLog(`[cleanup] 清理了 ${removedCount} 个空文件夹`, 'system');
         }
@@ -383,6 +384,17 @@ export class Organizer {
     async cleanupEmptyFolders() {
         const tree = await this.bm.getTree();
         let removedCount = 0;
+        const removeEmptyFolder = async (node) => {
+            if (this.isCancelled) return false;
+            try {
+                await this.bm.removeBookmark(node.id);
+                removedCount++;
+                return true;
+            } catch (e) {
+                this.onLog(`  ! 清理空文件夹失败 ${node.title || node.id}: ${e.message}`);
+                return false;
+            }
+        };
         const checkAndRemove = async (node) => {
             if (this.isCancelled) return false;
             if (node.id === '0' || node.id === '1' || node.id === '2') {
@@ -403,19 +415,11 @@ export class Organizer {
                     if (!isRemoved) contentCount++;
                 }
                 if (contentCount === 0) {
-                    if (!this.isCancelled) {
-                        await this.bm.removeBookmark(node.id);
-                        removedCount++;
-                    }
-                    return true;
+                    return removeEmptyFolder(node);
                 }
                 return false;
             } else {
-                if (!this.isCancelled) {
-                    await this.bm.removeBookmark(node.id);
-                    removedCount++;
-                }
-                return true;
+                return removeEmptyFolder(node);
             }
         };
         if (tree && tree[0]) await checkAndRemove(tree[0]);

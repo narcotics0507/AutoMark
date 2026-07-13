@@ -128,4 +128,52 @@ assert.deepEqual(resilienceCalls, [
 assert(resilienceLogs.some(message => message.includes('simulated Archive failure')));
 assert(resilienceLogs.some(message => message.includes('simulated 失效链接归档 failure')));
 
+const cleanupCalls = [];
+const cleanupLogs = [];
+const cleanupOrganizer = new Organizer({
+    onLog: message => cleanupLogs.push(message),
+    onStatus: () => {},
+    onProgress: () => {}
+});
+cleanupOrganizer.bm = {
+    getTree: async () => [{
+        id: '0',
+        children: [{
+            id: '1',
+            children: [
+                { id: 'folder-fails', title: 'Cannot remove', children: [] },
+                { id: 'folder-succeeds', title: 'Can remove', children: [] }
+            ]
+        }]
+    }],
+    removeBookmark: async id => {
+        cleanupCalls.push(id);
+        if (id === 'folder-fails') throw new Error('simulated cleanup failure');
+    }
+};
+
+const removedCount = await cleanupOrganizer.cleanupEmptyFolders();
+assert.equal(removedCount, 1);
+assert.deepEqual(cleanupCalls, ['folder-fails', 'folder-succeeds']);
+assert(cleanupLogs.some(message => message.includes('simulated cleanup failure')));
+
+const completionStatuses = [];
+const completionProgress = [];
+const cancelledDuringCleanup = new Organizer({
+    onLog: () => {},
+    onStatus: status => completionStatuses.push(status),
+    onProgress: value => completionProgress.push(value)
+});
+cancelledDuringCleanup.bm = {
+    getTree: async () => {
+        cancelledDuringCleanup.isCancelled = true;
+        return [{ id: '0', children: [] }];
+    },
+    removeBookmark: async () => {}
+};
+
+await assert.rejects(() => cancelledDuringCleanup.execute(emptyPlan()), /操作已取消/);
+assert(!completionStatuses.includes('idle'), 'cancelled cleanup must not report idle success');
+assert(!completionProgress.includes(100), 'cancelled cleanup must not report 100% success');
+
 console.log('Organizer rename tests passed');
