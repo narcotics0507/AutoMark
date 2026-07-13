@@ -2,7 +2,7 @@ import { AIService, CUSTOM_INSTRUCTIONS_MAX_LENGTH } from '../../src/lib/ai_serv
 import { Organizer } from '../../src/lib/organizer.js';
 import { Logger } from '../../src/lib/logger.js';
 import { BookmarkExporter } from '../../src/lib/exporter.js';
-import { buildSelectedPlan, getReviewCounts } from '../../src/lib/plan_review.js';
+import { buildSelectedPlan, escapePlanText, getReviewCounts } from '../../src/lib/plan_review.js';
 
 const DEFAULTS = {
     openai: {
@@ -599,7 +599,7 @@ function renderReview(plan) {
 
     createGroupedSection('优化书签标题', plan.bookmarks_to_rename, '🏷️',
         (item) => item.path || 'Bookmarks',
-        (item) => `<span>${item.old_title} &rarr; <b>${item.new_title}</b></span>`
+        (item) => `<span>${escapePlanText(item.old_title)} &rarr; <b>${escapePlanText(item.new_title)}</b></span>`
     );
 
     // 4. Archive
