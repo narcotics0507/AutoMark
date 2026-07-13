@@ -1,6 +1,7 @@
 import { AIService } from '../lib/ai_service.js';
 import { BookmarkManager } from '../lib/bookmark_manager.js';
 import { Logger } from '../lib/logger.js';
+import { buildQuickOrganizeNotificationUrl } from '../lib/notification_url.js';
 
 console.log('[Background] Service Worker Starting...');
 Logger.log('Service Worker Initialized');
@@ -109,7 +110,7 @@ async function processBookmark(id) {
         }
 
         // 2. Check Settings
-        const config = await chrome.storage.sync.get(['autoCategorize', 'apiProvider', 'apiEndpoint', 'apiKey', 'modelName', 'targetLanguage']);
+        const config = await chrome.storage.sync.get(['autoCategorize', 'apiProvider', 'apiEndpoint', 'apiKey', 'modelName', 'targetLanguage', 'organizationStyle', 'customInstructions']);
         if (!config.autoCategorize || !config.apiKey) return;
 
         Logger.log(`Processing bookmark after debounce: ${bookmark.title}`);
@@ -188,14 +189,16 @@ async function processBookmark(id) {
             // 6. Notify User
             const width = 450;
             const height = 420; // Compact height with internal scrolling
-            let notifyUrl = `src/options/quick_organize_notify.html?id=${id}&path=${encodeURIComponent(targetPath)}&old=${originalParentId}&same=${isSamePath}&targetId=${targetId}`;
-
-            // Pass original title and suggested title (Truncate to avoid URL limits)
-            const safeTitle = bookmark.title.length > 100 ? bookmark.title.substring(0, 100) + '...' : bookmark.title;
-            notifyUrl += `&msg=${encodeURIComponent(safeTitle)}`;
-            if (result.suggested_title) {
-                notifyUrl += `&suggestion=${encodeURIComponent(result.suggested_title)}`;
-            }
+            const notifyUrl = buildQuickOrganizeNotificationUrl({
+                bookmarkId: id,
+                targetPath,
+                oldParentId: originalParentId,
+                isSamePath,
+                targetId,
+                bookmarkTitle: bookmark.title,
+                suggestedTitle: result.suggested_title,
+                reason: result.reason
+            });
 
             const pos = await getNotificationPosition(width, height);
             chrome.windows.create({
