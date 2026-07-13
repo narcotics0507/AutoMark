@@ -2,6 +2,7 @@ import { AIService, CUSTOM_INSTRUCTIONS_MAX_LENGTH } from '../../src/lib/ai_serv
 import { Organizer } from '../../src/lib/organizer.js';
 import { Logger } from '../../src/lib/logger.js';
 import { BookmarkExporter } from '../../src/lib/exporter.js';
+import { buildSelectedPlan, getReviewCounts } from '../../src/lib/plan_review.js';
 
 const DEFAULTS = {
     openai: {
@@ -416,10 +417,10 @@ function renderReview(plan) {
     detailsEl.innerHTML = '';
 
     // Counts
-    const gets = (arr) => arr ? arr.length : 0;
-    document.getElementById('count-create').textContent = gets(plan.folders_to_create);
-    document.getElementById('count-move').textContent = gets(plan.bookmarks_to_move);
-    document.getElementById('count-rename').textContent = gets(plan.folders_to_rename);
+    const counts = getReviewCounts(plan);
+    document.getElementById('count-create').textContent = counts.create;
+    document.getElementById('count-move').textContent = counts.move;
+    document.getElementById('count-rename').textContent = counts.rename;
 
     /**
      * Helper to render expanded groups (Tree-like)
@@ -596,6 +597,11 @@ function renderReview(plan) {
         (i) => `<span>${i.old_title} &rarr; <b>${i.new_title}</b></span>`
     );
 
+    createGroupedSection('优化书签标题', plan.bookmarks_to_rename, '🏷️',
+        (item) => item.path || 'Bookmarks',
+        (item) => `<span>${item.old_title} &rarr; <b>${item.new_title}</b></span>`
+    );
+
     // 4. Archive
     createGroupedSection('归档/清理', plan.archive, '📦',
         (i) => i.reason || 'General',
@@ -723,10 +729,10 @@ function renderReview(plan) {
 
 function updateReviewCounts() {
     if (!currentPlan) return;
-    const count = (arr) => arr ? arr.filter(i => !i._ignored).length : 0;
-    document.getElementById('count-create').textContent = count(currentPlan.folders_to_create);
-    document.getElementById('count-move').textContent = count(currentPlan.bookmarks_to_move);
-    document.getElementById('count-rename').textContent = count(currentPlan.folders_to_rename);
+    const counts = getReviewCounts(currentPlan);
+    document.getElementById('count-create').textContent = counts.create;
+    document.getElementById('count-move').textContent = counts.move;
+    document.getElementById('count-rename').textContent = counts.rename;
 
     /**
      * For duplicates, the logic is inverted:
@@ -825,14 +831,7 @@ document.getElementById('btnExecuteInfo').addEventListener('click', async () => 
 
     // Let's modify the PREVIOUS replace block to include this logic!
 
-    const finalPlan = {
-        folders_to_create: currentPlan.folders_to_create?.filter(i => !i._ignored) || [],
-        folders_to_rename: currentPlan.folders_to_rename?.filter(i => !i._ignored) || [],
-        bookmarks_to_move: currentPlan.bookmarks_to_move?.filter(i => !i._ignored) || [],
-        archive: currentPlan.archive?.filter(i => !i._ignored) || [],
-        dead_links: currentPlan.dead_links?.filter(i => !i._ignored) || [],
-        duplicates: currentPlan.duplicates?.filter(i => !i._ignored) || []
-    };
+    const finalPlan = buildSelectedPlan(currentPlan);
 
 
     showStep('execute');
