@@ -1,4 +1,4 @@
-import { AIService } from '../../src/lib/ai_service.js';
+import { AIService, CUSTOM_INSTRUCTIONS_MAX_LENGTH } from '../../src/lib/ai_service.js';
 import { Organizer } from '../../src/lib/organizer.js';
 import { Logger } from '../../src/lib/logger.js';
 import { BookmarkExporter } from '../../src/lib/exporter.js';
@@ -25,9 +25,9 @@ const DEFAULTS = {
 document.addEventListener('DOMContentLoaded', restoreOptions);
 document.getElementById('btnSave').addEventListener('click', saveOptions);
 document.getElementById('btnTest').addEventListener('click', testConnection);
-document.getElementById('btnTest').addEventListener('click', testConnection);
 document.getElementById('apiProvider').addEventListener('change', handleProviderChange);
 document.getElementById('btnRefreshLogs').addEventListener('click', refreshLogs);
+document.getElementById('customInstructions').addEventListener('input', updateCustomInstructionsCount);
 
 // Copy Logs
 document.getElementById('btnCopyLogs').addEventListener('click', async () => {
@@ -73,6 +73,8 @@ function restoreOptions() {
             apiKey: '',
             modelName: 'gpt-4o',
             targetLanguage: 'zh-CN',
+            organizationStyle: 'balanced',
+            customInstructions: '',
             autoCategorize: false
         },
         (items) => {
@@ -85,6 +87,9 @@ function restoreOptions() {
             setVal('apiKey', items.apiKey);
             setVal('modelName', items.modelName);
             setVal('targetLanguage', items.targetLanguage);
+            setVal('organizationStyle', items.organizationStyle);
+            setVal('customInstructions', items.customInstructions);
+            updateCustomInstructionsCount();
 
             const autoCatEl = document.getElementById('autoCategorize');
             if (autoCatEl) autoCatEl.checked = items.autoCategorize;
@@ -99,8 +104,16 @@ function getConfigFromUI() {
         apiKey: document.getElementById('apiKey').value,
         modelName: document.getElementById('modelName').value,
         targetLanguage: document.getElementById('targetLanguage').value,
+        organizationStyle: document.getElementById('organizationStyle').value,
+        customInstructions: document.getElementById('customInstructions').value.trim(),
         autoCategorize: document.getElementById('autoCategorize').checked
     };
+}
+
+function updateCustomInstructionsCount() {
+    const input = document.getElementById('customInstructions');
+    const counter = document.getElementById('customInstructionsCount');
+    counter.textContent = `${input.value.length}/${CUSTOM_INSTRUCTIONS_MAX_LENGTH}`;
 }
 
 function saveOptions() {
@@ -108,6 +121,11 @@ function saveOptions() {
 
     if (!config.apiKey) {
         showStatus('请输入 API Key', 'red');
+        return;
+    }
+
+    if (config.customInstructions.length > CUSTOM_INSTRUCTIONS_MAX_LENGTH) {
+        showStatus(`自定义整理规则不能超过 ${CUSTOM_INSTRUCTIONS_MAX_LENGTH} 字`, 'red');
         return;
     }
 

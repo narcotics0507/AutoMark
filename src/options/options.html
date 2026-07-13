@@ -51,6 +51,26 @@
                 </select>
             </div>
 
+            <div class="form-group">
+                <label for="organizationStyle">整理风格</label>
+                <select id="organizationStyle">
+                    <option value="conservative">保守：尽量保持现有目录</option>
+                    <option value="balanced">均衡：必要时创建新目录</option>
+                    <option value="restructure">重构：允许更积极地调整结构</option>
+                </select>
+                <small class="hint">影响批量整理和新增书签的自动分类。</small>
+            </div>
+
+            <div class="form-group">
+                <label for="customInstructions">自定义整理规则</label>
+                <textarea id="customInstructions" maxlength="2000" rows="5"
+                    placeholder="例如：工作项目不要移动；前端文档统一放入开发技术/前端。"></textarea>
+                <div class="input-meta">
+                    <small class="hint">规则会追加到内置提示词，不会替换安全与输出约束。</small>
+                    <small id="customInstructionsCount">0/2000</small>
+                </div>
+            </div>
+
             <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
                 <input type="checkbox" id="autoCategorize" style="width: auto;">
                 <label for="autoCategorize" style="margin: 0; font-weight: normal;">自动整理新添加的书签</label>

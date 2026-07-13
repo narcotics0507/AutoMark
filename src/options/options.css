@@ -119,7 +119,8 @@ html {
 }
 
 .form-group input,
-.form-group select {
+.form-group select,
+.form-group textarea {
     width: 100%;
     padding: 10px 12px;
     border: 1px solid var(--border);
@@ -133,7 +134,8 @@ html {
 }
 
 .form-group input:focus,
-.form-group select:focus {
+.form-group select:focus,
+.form-group textarea:focus {
     border-color: var(--accent);
     box-shadow: 0 0 0 3px var(--accent-light);
 }
@@ -148,6 +150,41 @@ html {
     color: var(--text-tertiary);
     margin-top: 5px;
     line-height: 1.4;
+}
+
+.form-group textarea {
+    width: 100%;
+    min-height: 104px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1.45;
+    resize: vertical;
+    outline: none;
+    transition: all var(--transition);
+}
+
+.form-group textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-light);
+}
+
+.input-meta {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+#customInstructionsCount {
+    flex-shrink: 0;
+    margin-top: 5px;
+    color: var(--text-tertiary);
+    font-size: 12px;
 }
 
 .required {
