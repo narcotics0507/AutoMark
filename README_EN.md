@@ -31,6 +31,8 @@ AutoMark is a powerful browser extension for Chromium (Chrome, Edge, Brave, etc.
 When you add a bookmark, the AI automatically analyzes the page title and URL.
 *   **Auto-Categorization**: Moves the bookmark to the most appropriate existing folder or creates a new category based on content.
 *   **Smart Rename**: If the original title is vague (e.g., "Home - Official Site"), AI suggests a more intuitive and concise name.
+* **Custom organization rules**: Choose a conservative, balanced, or restructure style and add natural-language preferences used by both batch organization and automatic classification.
+* **Controlled title cleanup**: Review destination changes and title suggestions independently, with the AI classification reason shown in the automatic-classification popup.
 *   **Non-intrusive Experience**: A notification appears after adding, with a default delay before execution. You can click "Undo" or modify the target folder/name directly in the popup.
 
 ### 2. Batch Organize
