@@ -84,7 +84,11 @@ We provide a set of tools to keep your bookmark library healthy:
 
 If AutoMark has helped you out, whether by organizing a mountain of bookmarks or saving you time, please give this project a **Star ⭐️**! Your support is my biggest motivation!
 
-[![Star History Chart](https://api.star-history.com/svg?repos=narcotics0507/AutoMark&type=Date)](https://star-history.com/#narcotics0507/AutoMark&Date)
+[![GitHub Stars](https://img.shields.io/github/stars/narcotics0507/AutoMark?style=flat-square&logo=github&label=Stars&color=2f81f7)](https://github.com/narcotics0507/AutoMark/stargazers)
+
+[![AutoMark Star History](store-assets/star-history.svg)](https://github.com/narcotics0507/AutoMark/stargazers)
+
+> Star history data updated through 2026-07-15; the Stars badge above shows the current live count.
 
 ---
 

@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 480" role="img" aria-labelledby="title desc">
+  <title id="title">AutoMark Star History</title>
+  <desc id="desc">AutoMark grew from 1 GitHub star on February 10, 2026 to 62 stars on July 15, 2026.</desc>
+  <defs>
+    <linearGradient id="area" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2f81f7" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#2f81f7" stop-opacity="0.03"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#1f2328" flood-opacity="0.08"/>
+    </filter>
+    <style>
+      .background { fill: #ffffff; stroke: #d0d7de; }
+      .grid { stroke: #d8dee4; stroke-width: 1; }
+      .axis-label { fill: #57606a; font: 12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .heading { fill: #1f2328; font: 700 20px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .subtitle { fill: #656d76; font: 13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .value { fill: #0969da; font: 700 16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .line { fill: none; stroke: #2f81f7; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+      @media (prefers-color-scheme: dark) {
+        .background { fill: #0d1117; stroke: #30363d; }
+        .grid { stroke: #30363d; }
+        .axis-label, .subtitle { fill: #8b949e; }
+        .heading { fill: #f0f6fc; }
+        .value { fill: #58a6ff; }
+        .line { stroke: #58a6ff; }
+      }
+    </style>
+  </defs>
+
+  <rect class="background" x="8" y="8" width="944" height="464" rx="12" filter="url(#shadow)"/>
+  <text class="heading" x="80" y="38">AutoMark Star History</text>
+  <text class="subtitle" x="80" y="57">GitHub stars over time</text>
+  <text class="value" x="920" y="42" text-anchor="end">62 Stars</text>
+
+  <g aria-hidden="true">
+    <line class="grid" x1="80" y1="60" x2="920" y2="60"/>
+    <line class="grid" x1="80" y1="108.6" x2="920" y2="108.6"/>
+    <line class="grid" x1="80" y1="157.1" x2="920" y2="157.1"/>
+    <line class="grid" x1="80" y1="205.7" x2="920" y2="205.7"/>
+    <line class="grid" x1="80" y1="254.3" x2="920" y2="254.3"/>
+    <line class="grid" x1="80" y1="302.9" x2="920" y2="302.9"/>
+    <line class="grid" x1="80" y1="351.4" x2="920" y2="351.4"/>
+    <line class="grid" x1="80" y1="400" x2="920" y2="400"/>
+
+    <line class="grid" x1="80" y1="60" x2="80" y2="400"/>
+    <line class="grid" x1="183" y1="60" x2="183" y2="400"/>
+    <line class="grid" x1="351" y1="60" x2="351" y2="400"/>
+    <line class="grid" x1="513.5" y1="60" x2="513.5" y2="400"/>
+    <line class="grid" x1="681.5" y1="60" x2="681.5" y2="400"/>
+    <line class="grid" x1="844.1" y1="60" x2="844.1" y2="400"/>
+    <line class="grid" x1="920" y1="60" x2="920" y2="400"/>
+  </g>
+
+  <g class="axis-label" aria-hidden="true">
+    <text x="66" y="64" text-anchor="end">70</text>
+    <text x="66" y="112.6" text-anchor="end">60</text>
+    <text x="66" y="161.1" text-anchor="end">50</text>
+    <text x="66" y="209.7" text-anchor="end">40</text>
+    <text x="66" y="258.3" text-anchor="end">30</text>
+    <text x="66" y="306.9" text-anchor="end">20</text>
+    <text x="66" y="355.4" text-anchor="end">10</text>
+    <text x="66" y="404" text-anchor="end">0</text>
+
+    <text x="80" y="424" text-anchor="start">2026-02-10</text>
+    <text x="183" y="424" text-anchor="middle">03-01</text>
+    <text x="351" y="424" text-anchor="middle">04-01</text>
+    <text x="513.5" y="424" text-anchor="middle">05-01</text>
+    <text x="681.5" y="424" text-anchor="middle">06-01</text>
+    <text x="844.1" y="424" text-anchor="middle">07-01</text>
+    <text x="920" y="424" text-anchor="end">07-15</text>
+  </g>
+
+  <path fill="url(#area)" d="M80 400 L80 395.1 L85.4 356.3 L90.8 268.9 L96.3 254.3 L139.6 249.4 L150.5 239.7 L155.9 220.3 L177.5 215.4 L183 210.6 L188.4 181.4 L193.8 176.6 L199.2 171.7 L204.6 162 L220.9 157.1 L237.2 152.3 L275.1 142.6 L356.4 137.7 L437.7 132.9 L491.9 128 L708.6 123.1 L724.9 118.3 L757.4 113.4 L789.9 108.6 L914.6 98.9 L920 98.9 L920 400 Z"/>
+  <path class="line" d="M80 395.1 L85.4 356.3 L90.8 268.9 L96.3 254.3 L139.6 249.4 L150.5 239.7 L155.9 220.3 L177.5 215.4 L183 210.6 L188.4 181.4 L193.8 176.6 L199.2 171.7 L204.6 162 L220.9 157.1 L237.2 152.3 L275.1 142.6 L356.4 137.7 L437.7 132.9 L491.9 128 L708.6 123.1 L724.9 118.3 L757.4 113.4 L789.9 108.6 L914.6 98.9 L920 98.9"/>
+  <circle cx="920" cy="98.9" r="5" fill="#2f81f7" stroke="#ffffff" stroke-width="2"/>
+
+  <circle cx="80" cy="451" r="4" fill="#2f81f7"/>
+  <text class="subtitle" x="92" y="455">narcotics0507/AutoMark</text>
+  <text class="subtitle" x="920" y="455" text-anchor="end">Data through 2026-07-15</text>
+</svg>
